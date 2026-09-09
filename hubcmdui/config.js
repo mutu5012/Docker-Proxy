@@ -2,15 +2,26 @@
  * 应用全局配置文件
  */
 
+const { resolveSessionSecret } = require('./lib/sessionSecret');
+
 // 环境变量
 const ENV = process.env.NODE_ENV || 'development';
+
+// 会话签名密钥。
+const sessionSecretInfo = resolveSessionSecret();
 
 // 应用配置
 const config = {
   // 通用配置
   common: {
     port: process.env.PORT || 3000,
-    sessionSecret: process.env.SESSION_SECRET || 'OhTq3faqSKoxbV%NJV',
+    sessionSecret: sessionSecretInfo.secret,
+    // 密钥来源与轮换标记，供 server.js 在启动日志中说明（不参与签名计算）
+    sessionSecretMeta: {
+      source: sessionSecretInfo.source,
+      rotated: sessionSecretInfo.rotated,
+      weak: sessionSecretInfo.weak
+    },
     logLevel: process.env.LOG_LEVEL || 'info'
   },
   

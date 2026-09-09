@@ -1645,14 +1645,23 @@ if [ -f "${PROXY_DIR}/.env" ]; then
     INFO ".env 已存在, 复用现有 GO_PROXY_ADMIN_TOKEN"
 else
     local token
+    local session_secret
     if command -v openssl >/dev/null 2>&1; then
         token="$(openssl rand -hex 24)"
+        # 会话签名密钥：与上面同一个熵源，32 字节。显式生成而非留空，
+        # 保证后续多实例扩容时各副本拿到的是同一个值。
+        session_secret="$(openssl rand -hex 32)"
     else
         token="$(head -c 24 /dev/urandom | xxd -p | tr -d '\n')"
+        session_secret="$(head -c 32 /dev/urandom | xxd -p | tr -d '\n')"
     fi
     cat > "${PROXY_DIR}/.env" <<EOF
 # Docker 镜像加速管理 API 令牌 (请妥善保管, 切勿泄露)
 GO_PROXY_ADMIN_TOKEN=$token
+
+# 会话签名密钥 (用于给管理面板登录会话 cookie 签名, 请妥善保管, 切勿泄露)
+# 修改此值会使所有已登录用户登出一次
+SESSION_SECRET=$session_secret
 
 # 真实宿主机名（仪表盘「主机」展示用）。默认取安装时宿主机的 hostname，
 # 如需修改可手动改成任意名称后重新 up -d。
@@ -1664,7 +1673,7 @@ REGISTRY_IMAGE=dqzboy/registry:latest
 UI_IMAGE=dqzboy/hubcmd-ui:latest
 EOF
     chmod 600 "${PROXY_DIR}/.env"
-    INFO "已生成 .env 并写入随机管理令牌"
+    INFO "已生成 .env 并写入随机管理令牌与会话密钥"
 fi
 }
 

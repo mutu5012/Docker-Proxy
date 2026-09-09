@@ -162,7 +162,8 @@ node_modules
 .DS_Store
 hubcmdui/package-lock.json
 hubcmdui/data/app.db
-# docker-compose 挂载的本地运行时数据目录（含 SQLite 数据库）
+hubcmdui/data/
+.session-secret
 /data/
 build-images.sh
 go-proxy/config.local.yaml

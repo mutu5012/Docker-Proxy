@@ -37,6 +37,8 @@ services:
       - GO_PROXY_ADMIN_TOKEN=${GO_PROXY_ADMIN_TOKEN:-change-me-to-a-strong-random-token}
       # 真实宿主机名
       - HOST_NAME=${HOST_NAME:-}
+      # 会话签名密钥。生成：openssl rand -hex 32
+      - SESSION_SECRET=${SESSION_SECRET:-}
       - SECURE_COOKIE=false
       # HTTP 代理配置：前台镜像搜索由 hubcmd-ui 直接访问 Docker Hub/GitHub/Quay 等 API，
       # 受限网络中必须把代理环境变量传给 hubcmd-ui。HTTPS_PROXY 也通常填写 http:// 代理地址

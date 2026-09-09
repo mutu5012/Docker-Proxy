@@ -20,6 +20,7 @@ const { initializeDatabase } = require('./scripts/init-database');
 const database = require('./database/database');
 const httpProxyService = require('./services/httpProxyService');
 const registryCredentialService = require('./services/registryCredentialService');
+const { createSessionStore } = require('./lib/sessionStore');
 
 // 设置日志级别 (默认INFO, 可通过环境变量设置)
 const logLevel = process.env.LOG_LEVEL || 'WARN';
@@ -48,7 +49,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'web', 'dist')));
 app.use(bodyParser.urlencoded({ extended: true }));
 const sessionMiddleware = session({
-  secret: config.sessionSecret || 'OhTq3faqSKoxbV%NJV',
+  secret: config.sessionSecret,
+  store: createSessionStore() || undefined,
   // 未修改的请求不回写 Session，避免登录前的并发检查覆盖登录态。
   resave: false,
   // 未登录请求不创建空 Session/Cookie，减少并发响应抢写 connect.sid。
@@ -196,7 +198,19 @@ try {
 async function startServer() {
   server.listen(PORT, async () => {
     logger.info(`服务器已启动并监听端口 ${PORT}`);
-    
+
+    const secretMeta = config.sessionSecretMeta || {};
+    const sourceText = {
+      env: '环境变量 SESSION_SECRET',
+      file: `持久化文件 ${require('./lib/sessionSecret').SECRET_FILE}`,
+      generated: '自动生成并已持久化',
+      ephemeral: '自动生成（持久化失败，重启即失效）'
+    }[secretMeta.source] || secretMeta.source || '未知';
+    logger.info(`会话签名密钥来源: ${sourceText}`);
+    if (secretMeta.rotated) {
+      logger.warn('会话密钥已轮换，旧的登录态全部失效，所有用户需要重新登录一次');
+    }
+
     try {
       // 初始化数据库
       try {

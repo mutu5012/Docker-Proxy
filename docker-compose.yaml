@@ -28,6 +28,9 @@ services:
       - GO_PROXY_ADMIN_URL=http://go-proxy:5001
       - GO_PROXY_ADMIN_TOKEN=${GO_PROXY_ADMIN_TOKEN:-change-me-to-a-strong-random-token}
       - HOST_NAME=${HOST_NAME:-}
+      # 会话签名密钥
+      # 生成：openssl rand -hex 32
+      - SESSION_SECRET=${SESSION_SECRET:-}
       # SECURE_COOKIE 未设置时由应用按真实协议自适应（信任 Cloudflare 反代后的 X-Forwarded-Proto）。
       # 如需强制开启/关闭，可显式设置 SECURE_COOKIE=true / SECURE_COOKIE=false。
       # HTTP 代理配置：前台镜像搜索由 hubcmd-ui 直接访问 Docker Hub/GitHub/Quay 等 API，
