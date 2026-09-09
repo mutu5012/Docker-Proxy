@@ -10,31 +10,6 @@
 #  ORGANIZATION: DingQz dqzboy.com 浅时光博客
 #===============================================================================
 
-echo
-cat << EOF
-
-    ██████╗  ██████╗  ██████╗██╗  ██╗███████╗██████╗     ██████╗ ██████╗  ██████╗ ██╗  ██╗██╗   ██╗
-    ██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗    ██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝╚██╗ ██╔╝
-    ██║  ██║██║   ██║██║     █████╔╝ █████╗  ██████╔╝    ██████╔╝██████╔╝██║   ██║ ╚███╔╝  ╚████╔╝ 
-    ██║  ██║██║   ██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗    ██╔═══╝ ██╔══██╗██║   ██║ ██╔██╗   ╚██╔╝  
-    ██████╔╝╚██████╔╝╚██████╗██║  ██╗███████╗██║  ██║    ██║     ██║  ██║╚██████╔╝██╔╝ ██╗   ██║   
-    ╚═════╝  ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝    ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   
-
-                                    博客: dqzboy.com 浅时光博客
-                        项目地址: https://github.com/dqzboy/Docker-Proxy
-                                                                 
-EOF
-
-echo "----------------------------------------------------------------------------------------------------------"
-echo -e "\033[32mVPS / 主机推荐\033[0m"
-echo -e "\033[34mDediOne   - 快速可靠的网站托管服务：       \033[34;4mhttps://docker-proxy-desc.vercel.app/dedione.html\033[0m"
-echo -e "\033[34mDediRock  - 美国多机房高性价比 VPS：       \033[34;4mhttps://docker-proxy-desc.vercel.app/dedirock.html\033[0m"
-echo -e "\033[34mRackNerd  - 高性价比服务的海外 VPS：       \033[34;4mhttps://docker-proxy-desc.vercel.app/racknerd.html\033[0m"
-echo -e "\033[34mCloudCone - 灵活按需付费的云服务器：       \033[34;4mhttps://docker-proxy-desc.vercel.app/cloudcone.html\033[0m"
-echo "----------------------------------------------------------------------------------------------------------"
-echo
-echo
-
 GREEN="\033[0;32m"
 RED="\033[31m"
 YELLOW="\033[33m"
@@ -58,17 +33,157 @@ UNDERLINE="\033[4m"
 BLINK="\033[5m"
 REVERSE="\033[7m"
 
+# 用户界面语言：运行脚本时首先选择，回车默认中文。
+SCRIPT_LANG="zh"
+
+function I18N() {
+    local text="$1"
+    if [[ "$SCRIPT_LANG" != "en" ]]; then
+        printf '%s' "$text"
+        return
+    fi
+
+    case "$text" in
+        "检查环境") printf '%s' "Environment check" ;;
+        "安装依赖") printf '%s' "Install dependencies" ;;
+        "安装Docker") printf '%s' "Install Docker" ;;
+        "安装Docker Compose") printf '%s' "Install Docker Compose" ;;
+        "安装WEB服务") printf '%s' "Install web server" ;;
+        "安装Nginx") printf '%s' "Install Nginx" ;;
+        "安装Caddy") printf '%s' "Install Caddy" ;;
+        "配置Nginx") printf '%s' "Configure Nginx" ;;
+        "配置Caddy") printf '%s' "Configure Caddy" ;;
+        "生成运行环境配置") printf '%s' "Generate runtime configuration" ;;
+        "部署 Docker 镜像加速") printf '%s' "Deploy Docker image proxy" ;;
+        "安装服务") printf '%s' "Install services" ;;
+        "安装组件") printf '%s' "Install components" ;;
+        "请选择操作") printf '%s' "Select an operation" ;;
+        "其他工具") printf '%s' "Other tools" ;;
+        "服务管理") printf '%s' "Service management" ;;
+        "更新配置") printf '%s' "Update configuration" ;;
+        "卸载服务") printf '%s' "Uninstall services" ;;
+        "Docker服务代理") printf '%s' "Docker service proxy" ;;
+        "设置脚本为系统命令") printf '%s' "Install script as a system command" ;;
+        "设置IP黑白名单") printf '%s' "Configure IP allow/deny lists" ;;
+        "系统版本") printf '%s' "System version" ;;
+        "完成") printf '%s' "DONE" ;;
+        "无法确定发行版") printf '%s' "Unable to determine the Linux distribution" ;;
+        "此脚本目前不支持您的系统: "*) printf 'This script does not currently support your system: %s' "${text#*: }" ;;
+        "不受支持的软件包管理器.") printf '%s' "Unsupported package manager." ;;
+        "无法确定包管理系统.") printf '%s' "Unable to determine the package management system." ;;
+        "未检查到Docker Compose客户端工具,请通过脚本安装部署!") printf '%s' "Docker Compose was not detected. Install it through this script first." ;;
+        "内存占用率"*) printf 'Memory usage is high (%s%%). Continue installation? %b' "${memory_usage:-unknown}" "$PROMPT_YES_NO" ;;
+        "内存资源充足.请继续 "*) printf 'Memory resources are sufficient. Continue %b(%s%%)%b' "$LIGHT_GREEN" "${memory_usage:-unknown}" "$RESET" ;;
+        "服务器防火墙已被禁用.") printf '%s' "The server firewall has been disabled." ;;
+        "SELinux 已启用。禁用 SELinux...") printf '%s' "SELinux is enabled. Disabling SELinux..." ;;
+        "SELinux 已被禁用.") printf '%s' "SELinux has been disabled." ;;
+        "是否开启"*) printf 'Enable %bBBR%b to improve network throughput? %b' "$BRIGHT_CYAN" "$RESET" "$PROMPT_YES_NO" ;;
+        "你的内核版本小于4.9，无法启动BBR，需要你手动升级内核") printf '%s' "The kernel is older than 4.9. Upgrade it manually before enabling BBR." ;;
+        "你的服务器已经启动 "*) printf 'BBR is already enabled on this server.' ;;
+        "开启BBR中...") printf '%s' "Enabling BBR..." ;;
+        "不开启BBR") printf '%s' "BBR will not be enabled." ;;
+        "检查依赖安装情况，请稍等 ...") printf '%s' "Checking dependencies, please wait ..." ;;
+        "是否执行软件包安装? "*) printf 'Install required packages? (%bRequired for the first deployment%b) %b' "$LIGHT_YELLOW" "$RESET" "$PROMPT_YES_NO" ;;
+        "跳过软件包安装步骤") printf '%s' "Skipping package installation." ;;
+        "是否安装WEB服务? "*) printf 'Install a web server for domain-based access? %b' "$PROMPT_YES_NO" ;;
+        "选择安装的WEB服务。"*) printf 'Select a web server. %bCaddy can enable HTTPS automatically%b [Nginx/Caddy]: ' "$LIGHT_CYAN" "$RESET" ;;
+        "跳过WEB服务安装步骤") printf '%s' "Skipping web server installation." ;;
+        "Docker 未安装，正在进行安装...") printf '%s' "Docker is not installed. Starting installation..." ;;
+        "添加Docker仓库...") printf '%s' "Adding the Docker repository..." ;;
+        "安装Docker服务...") printf '%s' "Installing Docker..." ;;
+        "启动Docker服务...") printf '%s' "Starting Docker..." ;;
+        "Docker 安装失败，请尝试手动安装") printf '%s' "Docker installation failed. Please install it manually." ;;
+        "Docker Compose 未安装或安装不完整，正在进行安装...") printf '%s' "Docker Compose is missing or incomplete. Starting installation..." ;;
+        "下载Docker Compose...") printf '%s' "Downloading Docker Compose..." ;;
+        "Docker Compose 下载失败，请尝试手动安装docker-compose") printf '%s' "Docker Compose download failed. Please install docker-compose manually." ;;
+        "正在下载镜像版 compose 文件 ...") printf '%s' "Downloading the image-based compose file ..." ;;
+        "拉取镜像并启动 Docker 镜像加速 ...") printf '%s' "Pulling images and starting the Docker image proxy ..." ;;
+        "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ") printf 'Enter a number and press %bEnter%b > ' "$LIGHT_GREEN" "$RESET" ;;
+        "输入了无效的选择。请重新"*) printf '%s' "Invalid choice. Please select one of the listed options." ;;
+        "无效输入，请重新输入"*) printf '%s' "Invalid input. Please enter a valid option." ;;
+        "无效选项") printf '%s' "Invalid option" ;;
+        *) printf '%s' "$text" ;;
+    esac
+}
+
+function SELECT_LANGUAGE() {
+    while true; do
+        echo
+        echo "============================================================"
+        echo "Select language / 请选择语言"
+        echo "  1) 中文 (默认)"
+        echo "  2) English"
+        read -r -p "请输入选项 / Enter choice [1]: " language_choice
+        language_choice="${language_choice:-1}"
+        case "$language_choice" in
+            1) SCRIPT_LANG="zh"; break ;;
+            2) SCRIPT_LANG="en"; break ;;
+            *) echo "无效选项 / Invalid choice. Please enter 1 or 2." ;;
+        esac
+    done
+}
+
+function SHOW_BANNER() {
+    echo
+    cat << EOF
+
+    ██████╗  ██████╗  ██████╗██╗  ██╗███████╗██████╗     ██████╗ ██████╗  ██████╗ ██╗  ██╗██╗   ██╗
+    ██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗    ██╔══██╗██╔══██╗██╔═══██╗╚██╗██╔╝╚██╗ ██╔╝
+    ██║  ██║██║   ██║██║     █████╔╝ █████╗  ██████╔╝    ██████╔╝██████╔╝██║   ██║ ╚███╔╝  ╚████╔╝
+    ██║  ██║██║   ██║██║     ██╔═██╗ ██╔══╝  ██╔══██╗    ██╔═══╝ ██╔══██╗██║   ██║ ██╔██╗   ╚██╔╝
+    ██████╔╝╚██████╔╝╚██████╗██║  ██╗███████╗██║  ██║    ██║     ██║  ██║╚██████╔╝██╔╝ ██╗   ██║
+    ╚═════╝  ╚═════╝  ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝    ╚═╝     ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝
+
+EOF
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        echo "                                    Blog: dqzboy.com"
+        echo "                        Project: https://github.com/dqzboy/Docker-Proxy"
+    else
+        echo "                                    博客: dqzboy.com 浅时光博客"
+        echo "                        项目地址: https://github.com/dqzboy/Docker-Proxy"
+    fi
+    echo
+    echo "----------------------------------------------------------------------------------------------------------"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        echo -e "\033[32mVPS recommendations\033[0m"
+        echo -e "\033[34mDediOne   - Fast and reliable web hosting:    \033[34;4mhttps://docker-proxy-desc.vercel.app/dedione.html\033[0m"
+        echo -e "\033[34mDediRock  - Affordable US VPS:                \033[34;4mhttps://docker-proxy-desc.vercel.app/dedirock.html\033[0m"
+        echo -e "\033[34mRackNerd  - Cost-effective overseas VPS:      \033[34;4mhttps://docker-proxy-desc.vercel.app/racknerd.html\033[0m"
+        echo -e "\033[34mCloudCone - Flexible pay-as-you-go cloud VPS:  \033[34;4mhttps://docker-proxy-desc.vercel.app/cloudcone.html\033[0m"
+    else
+        echo -e "\033[32mVPS / 主机推荐\033[0m"
+        echo -e "\033[34mDediOne   - 快速可靠的网站托管服务：       \033[34;4mhttps://docker-proxy-desc.vercel.app/dedione.html\033[0m"
+        echo -e "\033[34mDediRock  - 美国多机房高性价比 VPS：       \033[34;4mhttps://docker-proxy-desc.vercel.app/dedirock.html\033[0m"
+        echo -e "\033[34mRackNerd  - 高性价比服务的海外 VPS：       \033[34;4mhttps://docker-proxy-desc.vercel.app/racknerd.html\033[0m"
+        echo -e "\033[34mCloudCone - 灵活按需付费的云服务器：       \033[34;4mhttps://docker-proxy-desc.vercel.app/cloudcone.html\033[0m"
+    fi
+    echo "----------------------------------------------------------------------------------------------------------"
+    echo
+}
+
+SELECT_LANGUAGE
+
+SHOW_BANNER
+
 INFO="[${GREEN}INFO${RESET}]"
 ERROR="[${RED}ERROR${RESET}]"
 WARN="[${YELLOW}WARN${RESET}]"
 function INFO() {
-    echo -e "${INFO} ${1}"
+    echo -e "${INFO} $(I18N "${1}")"
 }
 function ERROR() {
-    echo -e "${ERROR} ${1}"
+    echo -e "${ERROR} $(I18N "${1}")"
 }
 function WARN() {
-    echo -e "${WARN} ${1}"
+    echo -e "${WARN} $(I18N "${1}")"
+}
+
+function MENU_ECHO() {
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        echo -e "$2"
+    else
+        echo -e "$1"
+    fi
 }
 
 function PROMPT_Y_N() {
@@ -78,7 +193,7 @@ function PROMPT_Y_N() {
 PROMPT_YES_NO=$(PROMPT_Y_N)
 
 function SEPARATOR() {
-    echo -e "${INFO}${BOLD}${LIGHT_BLUE}======================== ${1} ========================${RESET}"
+    echo -e "${INFO}${BOLD}${LIGHT_BLUE}======================== $(I18N "${1}") ========================${RESET}"
 }
 
 
@@ -93,7 +208,8 @@ function cleanup() {
 }
 
 function start_spinner() {
-    local msg="$1"
+    local msg
+    msg="$(I18N "$1")"
     local temp_dir="/tmp/spinner"
     local pid_file="${temp_dir}/pid"
     local msg_file="${temp_dir}/message"
@@ -138,7 +254,11 @@ function stop_spinner() {
 
 # 检查是否以root权限运行
 if [[ $EUID -ne 0 ]]; then
-   ERROR "此脚本必须以root权限运行!" 
+   if [[ "$SCRIPT_LANG" == "en" ]]; then
+      ERROR "This script must be run as root!"
+   else
+      ERROR "此脚本必须以root权限运行!"
+   fi
    exit 1
 fi
 
@@ -151,6 +271,9 @@ cd "${PROXY_DIR}"
 
 GITRAW="https://raw.githubusercontent.com/dqzboy/Docker-Proxy/main"
 CNGITRAW="https://gitee.com/boydqz/Docker-Proxy/raw/main"
+# 部署环境：foreign 表示国外服务器，domestic 表示中国大陆服务器。
+# 一键安装流程会把该状态传递给 INSTALL_DOCKER_PROXY，避免重复询问并据此决定是否配置上游代理。
+DEPLOY_REGION=""
 # docker registry（go-proxy 镜像）
 IMAGE_NAME="dqzboy/registry"
 # hubcmd-ui 管理面板镜像
@@ -167,17 +290,30 @@ maxAttempts=3
 # go-proxy 专用管理服务菜单（仅 2 个 compose 服务：go-proxy / hubcmd-ui）
 function PROXY_SVC_MENU() {
     echo -e "${YELLOW}-------------------------------------------------${RESET}"
-    echo -e "${GREEN}1)${RESET} ${BOLD}Docker 镜像加速 (代理服务)${RESET}"
-    echo -e "${GREEN}2)${RESET} ${BOLD}hubcmd-ui (管理面板)${RESET}"
-    echo -e "${GREEN}10)${RESET} ${BOLD}all (全部)${RESET}"
-    echo -e "${GREEN}0)${RESET} ${BOLD}exit${RESET}"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        echo -e "${GREEN}1)${RESET} ${BOLD}Docker image proxy${RESET}"
+        echo -e "${GREEN}2)${RESET} ${BOLD}hubcmd-ui admin panel${RESET}"
+        echo -e "${GREEN}10)${RESET} ${BOLD}all services${RESET}"
+        echo -e "${GREEN}0)${RESET} ${BOLD}exit${RESET}"
+    else
+        echo -e "${GREEN}1)${RESET} ${BOLD}Docker 镜像加速 (代理服务)${RESET}"
+        echo -e "${GREEN}2)${RESET} ${BOLD}hubcmd-ui (管理面板)${RESET}"
+        echo -e "${GREEN}10)${RESET} ${BOLD}all (全部)${RESET}"
+        echo -e "${GREEN}0)${RESET} ${BOLD}exit${RESET}"
+    fi
     echo -e "${YELLOW}-------------------------------------------------${RESET}"
 }
 function PROXY_SER_MENU() {
     echo -e "${YELLOW}-------------------------------------------------${RESET}"
-    echo -e "${GREEN}1)${RESET} ${BOLD}Docker 镜像加速 (代理服务)${RESET}"
-    echo -e "${GREEN}2)${RESET} ${BOLD}hubcmd-ui (管理面板)${RESET}"
-    echo -e "${GREEN}0)${RESET} ${BOLD}exit${RESET}"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        echo -e "${GREEN}1)${RESET} ${BOLD}Docker image proxy${RESET}"
+        echo -e "${GREEN}2)${RESET} ${BOLD}hubcmd-ui admin panel${RESET}"
+        echo -e "${GREEN}0)${RESET} ${BOLD}exit${RESET}"
+    else
+        echo -e "${GREEN}1)${RESET} ${BOLD}Docker 镜像加速 (代理服务)${RESET}"
+        echo -e "${GREEN}2)${RESET} ${BOLD}hubcmd-ui (管理面板)${RESET}"
+        echo -e "${GREEN}0)${RESET} ${BOLD}exit${RESET}"
+    fi
     echo -e "${YELLOW}-------------------------------------------------${RESET}"
 }
 
@@ -198,7 +334,7 @@ OSVER=$(cat /etc/os-release | grep -o '[0-9]' | head -n 1)
 if [ -f /etc/os-release ]; then
     . /etc/os-release
 else
-    echo "无法确定发行版"
+    ERROR "无法确定发行版"
     exit 1
 fi
 
@@ -1499,24 +1635,58 @@ fi
 
 # 一键部署调此函数：为 go-proxy 容器注入上游代理（用于访问 Docker Hub / GHCR 等上游）
 function PROXY_HTTP() {
-read -e -p "$(INFO "是否添加上游代理(科学上网, 用于 go-proxy 访问 Docker Hub/GHCR 等上游)? ${PROMPT_YES_NO}")" modify_config
+if [[ "$DEPLOY_REGION" == "foreign" ]]; then
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        INFO "Overseas deployments use direct registry access; skipping upstream proxy configuration."
+    else
+        INFO "国外环境默认直连上游 registry，跳过上游代理配置。"
+    fi
+    return 0
+fi
+
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    read -e -p "$(INFO "Add an upstream proxy for go-proxy to access Docker Hub/GHCR? ${PROMPT_YES_NO}")" modify_config
+else
+    read -e -p "$(INFO "是否添加上游代理(科学上网, 用于 go-proxy 访问 Docker Hub/GHCR 等上游)? ${PROMPT_YES_NO}")" modify_config
+fi
 case $modify_config in
   [Yy]* )
-    read -e -p "$(INFO "输入代理地址(科学上网) ${LIGHT_MAGENTA}(eg: host:port)${RESET}: ")" url
-    while [[ -z "$url" ]]; do
-      WARN "代理${LIGHT_YELLOW}地址不能为空${RESET}，请重新输入!"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+      read -e -p "$(INFO "Enter proxy address ${LIGHT_MAGENTA}(e.g. host:port)${RESET}: ")" url
+    else
       read -e -p "$(INFO "输入代理地址(科学上网) ${LIGHT_MAGENTA}(eg: host:port)${RESET}: ")" url
+    fi
+    while [[ -z "$url" ]]; do
+      if [[ "$SCRIPT_LANG" == "en" ]]; then
+        WARN "Proxy address cannot be empty. Please try again."
+        read -e -p "$(INFO "Enter proxy address ${LIGHT_MAGENTA}(e.g. host:port)${RESET}: ")" url
+      else
+        WARN "代理${LIGHT_YELLOW}地址不能为空${RESET}，请重新输入!"
+        read -e -p "$(INFO "输入代理地址(科学上网) ${LIGHT_MAGENTA}(eg: host:port)${RESET}: ")" url
+      fi
     done
     sed -i "s@# - HTTP_PROXY=http://host:port@- HTTP_PROXY=http://${url}@g" ${PROXY_DIR}/${DOCKER_COMPOSE_FILE}
     sed -i "s@# - HTTPS_PROXY=http://host:port@- HTTPS_PROXY=http://${url}@g" ${PROXY_DIR}/${DOCKER_COMPOSE_FILE}
 
-    INFO "你配置上游代理地址为: ${CYAN}http://${url}${RESET}"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+      INFO "Upstream proxy configured as: ${CYAN}http://${url}${RESET}"
+    else
+      INFO "你配置上游代理地址为: ${CYAN}http://${url}${RESET}"
+    fi
     ;;
   [Nn]* )
-    WARN "跳过添加上游代理配置"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+      WARN "Skipped upstream proxy configuration"
+    else
+      WARN "跳过添加上游代理配置"
+    fi
     ;;
   * )
-    ERROR "无效的输入。请重新输入${LIGHT_GREEN}Y or N ${RESET}的选项"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+      ERROR "Invalid input. Please enter ${LIGHT_GREEN}Y${RESET} or ${LIGHT_GREEN}N${RESET}."
+    else
+      ERROR "无效的输入。请重新输入${LIGHT_GREEN}Y or N ${RESET}的选项"
+    fi
     PROXY_HTTP
     ;;
 esac
@@ -1642,7 +1812,11 @@ function RESTART_CONTAINER() {
 function GEN_ENV() {
 SEPARATOR "生成运行环境配置"
 if [ -f "${PROXY_DIR}/.env" ]; then
-    INFO ".env 已存在, 复用现有 GO_PROXY_ADMIN_TOKEN"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        INFO ".env already exists; reusing the existing GO_PROXY_ADMIN_TOKEN"
+    else
+        INFO ".env 已存在, 复用现有 GO_PROXY_ADMIN_TOKEN"
+    fi
 else
     local token
     local session_secret
@@ -1673,7 +1847,11 @@ REGISTRY_IMAGE=dqzboy/registry:latest
 UI_IMAGE=dqzboy/hubcmd-ui:latest
 EOF
     chmod 600 "${PROXY_DIR}/.env"
-    INFO "已生成 .env 并写入随机管理令牌与会话密钥"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        INFO "Generated .env with a random admin token and session secret"
+    else
+        INFO "已生成 .env 并写入随机管理令牌与会话密钥"
+    fi
 fi
 }
 
@@ -1683,28 +1861,69 @@ SEPARATOR "部署 Docker 镜像加速"
 CHECK_COMPOSE_CMD
 # 选择下载源（国外/国内）
 local COMPOSE_SRC="$GITRAW"
-while true; do
-    read -e -p "$(INFO "安装环境确认 [${LIGHT_GREEN}国外输1${RESET} ${LIGHT_YELLOW}国内输2${RESET}] > ")" install_src
-    case "$install_src" in
-        1 ) COMPOSE_SRC="$GITRAW"; break ;;
-        2 ) COMPOSE_SRC="$CNGITRAW"; break ;;
-        * ) INFO "请输入 ${LIGHT_GREEN}1${RESET} 表示国外 或者 ${LIGHT_YELLOW}2${RESET} 表示大陆" ;;
-    esac
-done
+local install_src="${1:-}"
+if [[ "$install_src" != "1" && "$install_src" != "2" ]]; then
+    while true; do
+        if [[ "$SCRIPT_LANG" == "en" ]]; then
+            read -e -p "$(INFO "Select deployment environment [${LIGHT_GREEN}1${RESET}: overseas, ${LIGHT_YELLOW}2${RESET}: mainland China] > ")" install_src
+        else
+            read -e -p "$(INFO "安装环境确认 [${LIGHT_GREEN}国外输1${RESET} ${LIGHT_YELLOW}国内输2${RESET}] > ")" install_src
+        fi
+        case "$install_src" in
+            1|2) break ;;
+            *)
+                if [[ "$SCRIPT_LANG" == "en" ]]; then
+                    INFO "Enter ${LIGHT_GREEN}1${RESET} for overseas or ${LIGHT_YELLOW}2${RESET} for mainland China"
+                else
+                    INFO "请输入 ${LIGHT_GREEN}1${RESET} 表示国外 或者 ${LIGHT_YELLOW}2${RESET} 表示大陆"
+                fi
+                ;;
+        esac
+    done
+fi
 
-INFO "正在下载镜像版 compose 文件 ..."
+case "$install_src" in
+    1) COMPOSE_SRC="$GITRAW"; DEPLOY_REGION="foreign" ;;
+    2) COMPOSE_SRC="$CNGITRAW"; DEPLOY_REGION="domestic" ;;
+esac
+
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    INFO "Downloading the image-based compose file ..."
+else
+    INFO "正在下载镜像版 compose 文件 ..."
+fi
 wget -NP ${PROXY_DIR}/ ${COMPOSE_SRC}/${DOCKER_COMPOSE_FILE} &>/dev/null
 if [ $? -ne 0 ]; then
-    ERROR "下载 ${DOCKER_COMPOSE_FILE} 失败，请检查网络后重试"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        ERROR "Failed to download ${DOCKER_COMPOSE_FILE}. Check the network and try again."
+    else
+        ERROR "下载 ${DOCKER_COMPOSE_FILE} 失败，请检查网络后重试"
+    fi
     return 1
 fi
 
 GEN_ENV
-PROXY_HTTP
-INFO "拉取镜像并启动 Docker 镜像加速 ..."
+if [[ "$DEPLOY_REGION" == "domestic" ]]; then
+    PROXY_HTTP
+else
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        INFO "No upstream proxy is needed for an overseas deployment; continuing with image pull."
+    else
+        INFO "国外环境无需配置上游代理，继续拉取镜像。"
+    fi
+fi
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    INFO "Pulling images and starting the Docker image proxy ..."
+else
+    INFO "拉取镜像并启动 Docker 镜像加速 ..."
+fi
 $DOCKER_COMPOSE_CMD -f "${PROXY_DIR}/${DOCKER_COMPOSE_FILE}" up -d
 if [ $? -ne 0 ]; then
-    ERROR "服务启动失败，请通过查看日志确认原因: $DOCKER_COMPOSE_CMD -f ${PROXY_DIR}/${DOCKER_COMPOSE_FILE} logs"
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        ERROR "Service startup failed. Check the logs: $DOCKER_COMPOSE_CMD -f ${PROXY_DIR}/${DOCKER_COMPOSE_FILE} logs"
+    else
+        ERROR "服务启动失败，请通过查看日志确认原因: $DOCKER_COMPOSE_CMD -f ${PROXY_DIR}/${DOCKER_COMPOSE_FILE} logs"
+    fi
     exit 1
 fi
 }
@@ -1789,9 +2008,9 @@ function SET_LOG_LEVEL() {
         return 1
     fi
     echo
-    echo -e "  1) ${BOLD}quiet${RESET}  - 仅输出错误"
-    echo -e "  2) ${BOLD}normal${RESET} - 默认，跳过 blob 噪声"
-    echo -e "  3) ${BOLD}debug${RESET}  - 输出全部请求"
+    MENU_ECHO "  1) ${BOLD}quiet${RESET}  - 仅输出错误" "  1) ${BOLD}quiet${RESET}  - errors only"
+    MENU_ECHO "  2) ${BOLD}normal${RESET} - 默认，跳过 blob 噪声" "  2) ${BOLD}normal${RESET} - default, hide blob noise"
+    MENU_ECHO "  3) ${BOLD}debug${RESET}  - 输出全部请求" "  3) ${BOLD}debug${RESET}  - all requests"
     read -e -p "$(INFO "选择日志级别 > ")" ll_choice
     local lvl
     case "$ll_choice" in
@@ -1815,8 +2034,8 @@ function SET_UPSTREAM_PROXY() {
     fi
     echo
     INFO "为 go-proxy 容器配置出口代理，用于通过本地代理（如科学上网）访问上游 registry"
-    echo -e "  1) ${BOLD}设置${RESET} 上游代理"
-    echo -e "  2) ${BOLD}清除${RESET} 上游代理"
+    MENU_ECHO "  1) ${BOLD}设置${RESET} 上游代理" "  1) ${BOLD}Set${RESET} upstream proxy"
+    MENU_ECHO "  2) ${BOLD}清除${RESET} 上游代理" "  2) ${BOLD}Clear${RESET} upstream proxy"
     read -e -p "$(INFO "选择操作 > ")" up_choice
     case "$up_choice" in
         1)
@@ -1885,13 +2104,13 @@ function UPDATE_CONFIG() {
     esac
     echo
     while true; do
-        echo -e "  配置文件: ${LIGHT_BLUE}${GO_PROXY_CONFIG}${RESET}"
+        MENU_ECHO "  配置文件: ${LIGHT_BLUE}${GO_PROXY_CONFIG}${RESET}" "  Configuration file: ${LIGHT_BLUE}${GO_PROXY_CONFIG}${RESET}"
         echo
-        echo -e "  1) ${BOLD}直接编辑${RESET} 加速服务配置 (config.yaml)"
-        echo -e "  2) 设置 ${BOLD}Docker Hub 加速账号${RESET} (提升匿名拉取频率限制)"
-        echo -e "  3) 切换 ${BOLD}日志级别${RESET} (quiet / normal / debug)"
-        echo -e "  4) 配置 ${BOLD}上游 HTTP/HTTPS 代理${RESET} (go-proxy 容器出口)"
-        echo -e "  0) ${LIGHT_YELLOW}返回${RESET} 主菜单"
+        MENU_ECHO "  1) ${BOLD}直接编辑${RESET} 加速服务配置 (config.yaml)" "  1) ${BOLD}Edit${RESET} proxy configuration directly (config.yaml)"
+        MENU_ECHO "  2) 设置 ${BOLD}Docker Hub 加速账号${RESET} (提升匿名拉取频率限制)" "  2) Set ${BOLD}Docker Hub credentials${RESET} (increase anonymous pull limits)"
+        MENU_ECHO "  3) 切换 ${BOLD}日志级别${RESET} (quiet / normal / debug)" "  3) Change ${BOLD}log level${RESET} (quiet / normal / debug)"
+        MENU_ECHO "  4) 配置 ${BOLD}上游 HTTP/HTTPS 代理${RESET} (go-proxy 容器出口)" "  4) Configure ${BOLD}upstream HTTP/HTTPS proxy${RESET} (go-proxy egress)"
+        MENU_ECHO "  0) ${LIGHT_YELLOW}返回${RESET} 主菜单" "  0) ${LIGHT_YELLOW}Return${RESET} to main menu"
         echo
         read -e -p "$(INFO "请选择操作 > ")" uc_choice
         case "$uc_choice" in
@@ -2006,33 +2225,63 @@ DEFAULT_ADMIN_USER="root"
 DEFAULT_ADMIN_PASS="admin@123"
 
 echo
-INFO "=================感谢您的耐心等待，安装已经完成=================="
-INFO
-INFO "请用浏览器访问管理面板(可在网页上增删改代理、热重载): "
-INFO "公网访问地址: ${UNDERLINE}http://$PUBLIC_IP:30080/admin${RESET}"
-INFO "内网访问地址: ${UNDERLINE}http://$INTERNAL_IP:30080/admin${RESET}"
-INFO
-INFO "管理面板默认账号${LIGHT_RED}(首次登录会强制改密)${RESET}: "
-INFO "  用户名: ${LIGHT_CYAN}${DEFAULT_ADMIN_USER}${RESET}"
-INFO "  密  码: ${LIGHT_CYAN}${DEFAULT_ADMIN_PASS}${RESET}"
-INFO
-INFO "Docker 镜像加速(直连, 按 Host 头路由 Docker Hub/GHCR/Quay/K8s/MCR/...): "
-INFO "公网地址: ${UNDERLINE}http://$PUBLIC_IP:50000${RESET}"
-INFO "内网地址: ${UNDERLINE}http://$INTERNAL_IP:50000${RESET}"
-INFO
-INFO "加速服务安装路径: ${LIGHT_BLUE}${PROXY_DIR}${RESET}"
-INFO
-INFO "服务对应监听端口(参考信息):"
-INFO "Docker 镜像加速(go-proxy): 50000   │   管理面板(hubcmd-ui): 30080"
-INFO
-INFO "作者博客: https://dqzboy.com"
-INFO "项目交流: https://t.me/Docker_Proxy"
-INFO "代码仓库: https://github.com/dqzboy/Docker-Proxy"
-INFO "合作联系: https://t.me/RelayHubBot"
-INFO
-INFO "若用云服务器并设域名及证书，需在安全组开放80、443端口；否则开放对应服务监听端口"
-INFO
-INFO "VPS / 主机推荐(AFF):"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    INFO "====================== Installation completed ======================"
+    INFO
+    INFO "Open the admin panel in a browser to manage proxies and hot reloads:"
+    INFO "Public URL: ${UNDERLINE}http://$PUBLIC_IP:30080/admin${RESET}"
+    INFO "Private URL: ${UNDERLINE}http://$INTERNAL_IP:30080/admin${RESET}"
+    INFO
+    INFO "Default admin credentials ${LIGHT_RED}(password change required on first login)${RESET}:"
+    INFO "  Username: ${LIGHT_CYAN}${DEFAULT_ADMIN_USER}${RESET}"
+    INFO "  Password: ${LIGHT_CYAN}${DEFAULT_ADMIN_PASS}${RESET}"
+    INFO
+    INFO "Docker image proxy (direct access, routes Docker Hub/GHCR/Quay/K8s/MCR/... by Host header):"
+    INFO "Public URL: ${UNDERLINE}http://$PUBLIC_IP:50000${RESET}"
+    INFO "Private URL: ${UNDERLINE}http://$INTERNAL_IP:50000${RESET}"
+    INFO
+    INFO "Installation directory: ${LIGHT_BLUE}${PROXY_DIR}${RESET}"
+    INFO
+    INFO "Service ports:"
+    INFO "Docker image proxy (go-proxy): 50000   │   Admin panel (hubcmd-ui): 30080"
+    INFO
+    INFO "Author blog: https://dqzboy.com"
+    INFO "Community: https://t.me/Docker_Proxy"
+    INFO "Repository: https://github.com/dqzboy/Docker-Proxy"
+    INFO "Contact: https://t.me/RelayHubBot"
+    INFO
+    INFO "For cloud servers using domains and TLS, open ports 80 and 443 in the security group; otherwise open the service ports above."
+    INFO
+    INFO "VPS recommendations (affiliate links):"
+else
+    INFO "=================感谢您的耐心等待，安装已经完成=================="
+    INFO
+    INFO "请用浏览器访问管理面板(可在网页上增删改代理、热重载): "
+    INFO "公网访问地址: ${UNDERLINE}http://$PUBLIC_IP:30080/admin${RESET}"
+    INFO "内网访问地址: ${UNDERLINE}http://$INTERNAL_IP:30080/admin${RESET}"
+    INFO
+    INFO "管理面板默认账号${LIGHT_RED}(首次登录会强制改密)${RESET}: "
+    INFO "  用户名: ${LIGHT_CYAN}${DEFAULT_ADMIN_USER}${RESET}"
+    INFO "  密  码: ${LIGHT_CYAN}${DEFAULT_ADMIN_PASS}${RESET}"
+    INFO
+    INFO "Docker 镜像加速(直连, 按 Host 头路由 Docker Hub/GHCR/Quay/K8s/MCR/...): "
+    INFO "公网地址: ${UNDERLINE}http://$PUBLIC_IP:50000${RESET}"
+    INFO "内网地址: ${UNDERLINE}http://$INTERNAL_IP:50000${RESET}"
+    INFO
+    INFO "加速服务安装路径: ${LIGHT_BLUE}${PROXY_DIR}${RESET}"
+    INFO
+    INFO "服务对应监听端口(参考信息):"
+    INFO "Docker 镜像加速(go-proxy): 50000   │   管理面板(hubcmd-ui): 30080"
+    INFO
+    INFO "作者博客: https://dqzboy.com"
+    INFO "项目交流: https://t.me/Docker_Proxy"
+    INFO "代码仓库: https://github.com/dqzboy/Docker-Proxy"
+    INFO "合作联系: https://t.me/RelayHubBot"
+    INFO
+    INFO "若用云服务器并设域名及证书，需在安全组开放80、443端口；否则开放对应服务监听端口"
+    INFO
+    INFO "VPS / 主机推荐(AFF):"
+fi
 INFO "DediOne:   https://docker-proxy-desc.vercel.app/dedione.html"
 INFO "DediRock:  https://docker-proxy-desc.vercel.app/dedirock.html"
 INFO "RackNerd:  https://docker-proxy-desc.vercel.app/racknerd.html"
@@ -2054,33 +2303,54 @@ PACKAGE
 INSTALL_WEB
 while true; do
     SEPARATOR "安装Docker"
-    read -e -p "$(INFO "安装环境确认 [${LIGHT_GREEN}国外输1${RESET} ${LIGHT_YELLOW}国内输2${RESET}] > ")" deploy_docker
+    if [[ "$SCRIPT_LANG" == "en" ]]; then
+        read -e -p "$(INFO "Select deployment environment [${LIGHT_GREEN}1${RESET}: overseas, ${LIGHT_YELLOW}2${RESET}: mainland China] > ")" deploy_docker
+    else
+        read -e -p "$(INFO "安装环境确认 [${LIGHT_GREEN}国外输1${RESET} ${LIGHT_YELLOW}国内输2${RESET}] > ")" deploy_docker
+    fi
     case "$deploy_docker" in
         1 )
             INSTALL_DOCKER
             INSTALL_COMPOSE
+            DEPLOY_REGION="foreign"
             break;;
         2 )
             INSTALL_DOCKER_CN
             INSTALL_COMPOSE_CN
+            DEPLOY_REGION="domestic"
             break;;
         * )
-            INFO "请输入 ${LIGHT_GREEN}1${RESET} 表示国外 或者 ${LIGHT_YELLOW}2${RESET} 表示大陆";;
+            if [[ "$SCRIPT_LANG" == "en" ]]; then
+                INFO "Enter ${LIGHT_GREEN}1${RESET} for overseas or ${LIGHT_YELLOW}2${RESET} for mainland China"
+            else
+                INFO "请输入 ${LIGHT_GREEN}1${RESET} 表示国外 或者 ${LIGHT_YELLOW}2${RESET} 表示大陆"
+            fi
+            ;;
     esac
 done
 
-INSTALL_DOCKER_PROXY
+INSTALL_DOCKER_PROXY "$deploy_docker"
 PROMPT
 }
 
 
 
 SEPARATOR "安装服务"
-echo -e "1) 一键${BOLD}${LIGHT_GREEN}部署所有${RESET}服务"
-echo -e "2) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
-echo -e "0) ${BOLD}退出脚本${RESET}"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "1) One-click ${BOLD}${LIGHT_GREEN}deploy all${RESET} services"
+    echo -e "2) ${BOLD}Return${RESET} to main menu"
+    echo -e "0) ${BOLD}Exit${RESET}"
+else
+    echo -e "1) 一键${BOLD}${LIGHT_GREEN}部署所有${RESET}服务"
+    echo -e "2) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
+    echo -e "0) ${BOLD}退出脚本${RESET}"
+fi
 echo "---------------------------------------------------------------"
-read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" proxy_install
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    read -e -p "$(INFO "Enter a number and press ${LIGHT_GREEN}Enter${RESET} > ")" proxy_install
+else
+    read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" proxy_install
+fi
 
 case $proxy_install in
     1)
@@ -2093,7 +2363,11 @@ case $proxy_install in
         exit 1
         ;;
     *)
-        WARN "输入了无效的选择。请重新${LIGHT_GREEN}选择0-2${RESET}的选项."
+        if [[ "$SCRIPT_LANG" == "en" ]]; then
+            WARN "Invalid choice. Please select an option from ${LIGHT_GREEN}0-2${RESET}."
+        else
+            WARN "输入了无效的选择。请重新${LIGHT_GREEN}选择0-2${RESET}的选项."
+        fi
         INSTALL_PROXY
         ;;
 esac
@@ -2103,17 +2377,33 @@ esac
 
 function COMP_INST() {
 SEPARATOR "安装组件"
-echo -e "1) ${BOLD}安装${LIGHT_GREEN}环境依赖${RESET}"
-echo -e "2) ${BOLD}安装${LIGHT_CYAN}Docker${RESET}"
-echo -e "3) ${BOLD}安装${LIGHT_MAGENTA}Compose${RESET}"
-echo -e "4) ${BOLD}安装${GREEN}Nginx${RESET}"
-echo -e "5) ${BOLD}安装${LIGHT_BLUE}Caddy${RESET}"
-echo -e "6) ${BOLD}配置${LIGHT_YELLOW}Nginx${RESET}"
-echo -e "7) ${BOLD}配置${CYAN}Caddy${RESET}"
-echo -e "8) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
-echo -e "0) ${BOLD}退出脚本${RESET}"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "1) ${BOLD}Install${LIGHT_GREEN} dependencies${RESET}"
+    echo -e "2) ${BOLD}Install${LIGHT_CYAN} Docker${RESET}"
+    echo -e "3) ${BOLD}Install${LIGHT_MAGENTA} Compose${RESET}"
+    echo -e "4) ${BOLD}Install${GREEN} Nginx${RESET}"
+    echo -e "5) ${BOLD}Install${LIGHT_BLUE} Caddy${RESET}"
+    echo -e "6) ${BOLD}Configure${LIGHT_YELLOW} Nginx${RESET}"
+    echo -e "7) ${BOLD}Configure${CYAN} Caddy${RESET}"
+    echo -e "8) ${BOLD}Return${LIGHT_RED} to main menu${RESET}"
+    echo -e "0) ${BOLD}Exit${RESET}"
+else
+    echo -e "1) ${BOLD}安装${LIGHT_GREEN}环境依赖${RESET}"
+    echo -e "2) ${BOLD}安装${LIGHT_CYAN}Docker${RESET}"
+    echo -e "3) ${BOLD}安装${LIGHT_MAGENTA}Compose${RESET}"
+    echo -e "4) ${BOLD}安装${GREEN}Nginx${RESET}"
+    echo -e "5) ${BOLD}安装${LIGHT_BLUE}Caddy${RESET}"
+    echo -e "6) ${BOLD}配置${LIGHT_YELLOW}Nginx${RESET}"
+    echo -e "7) ${BOLD}配置${CYAN}Caddy${RESET}"
+    echo -e "8) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
+    echo -e "0) ${BOLD}退出脚本${RESET}"
+fi
 echo "---------------------------------------------------------------"
-read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")"  comp_choice
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    read -e -p "$(INFO "Enter a number and press ${LIGHT_GREEN}Enter${RESET} > ")" comp_choice
+else
+    read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" comp_choice
+fi
 
 case $comp_choice in
     1)
@@ -2371,11 +2661,19 @@ CONTAIENR_LOGS() {
 ### 启动新容器 END
 
 SEPARATOR "服务管理"
-echo -e "1) ${BOLD}${LIGHT_GREEN}重启${RESET}服务"
-echo -e "2) ${BOLD}${LIGHT_CYAN}更新${RESET}服务"
-echo -e "3) ${BOLD}${LIGHT_MAGENTA}查看${RESET}日志"
-echo -e "4) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
-echo -e "0) ${BOLD}退出脚本${RESET}"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "1) ${BOLD}${LIGHT_GREEN}Restart${RESET} services"
+    echo -e "2) ${BOLD}${LIGHT_CYAN}Update${RESET} services"
+    echo -e "3) ${BOLD}${LIGHT_MAGENTA}View${RESET} logs"
+    echo -e "4) ${BOLD}Return${LIGHT_RED} to main menu${RESET}"
+    echo -e "0) ${BOLD}Exit${RESET}"
+else
+    echo -e "1) ${BOLD}${LIGHT_GREEN}重启${RESET}服务"
+    echo -e "2) ${BOLD}${LIGHT_CYAN}更新${RESET}服务"
+    echo -e "3) ${BOLD}${LIGHT_MAGENTA}查看${RESET}日志"
+    echo -e "4) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
+    echo -e "0) ${BOLD}退出脚本${RESET}"
+fi
 echo "---------------------------------------------------------------"
 read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" ser_choice
 
@@ -2485,10 +2783,10 @@ INSTALL_OR_UPDATE_CMD() {
 }
 
 SEPARATOR "设置脚本为系统命令"
-echo -e "1) ${BOLD}安装${LIGHT_GREEN}系统命令${RESET}"
-echo -e "2) ${BOLD}更新${LIGHT_CYAN}系统命令${RESET}"
-echo -e "3) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
-echo -e "0) ${BOLD}退出脚本${RESET}"
+MENU_ECHO "1) ${BOLD}安装${LIGHT_GREEN}系统命令${RESET}" "1) ${BOLD}Install${LIGHT_GREEN} system command${RESET}"
+MENU_ECHO "2) ${BOLD}更新${LIGHT_CYAN}系统命令${RESET}" "2) ${BOLD}Update${LIGHT_CYAN} system command${RESET}"
+MENU_ECHO "3) ${BOLD}返回${LIGHT_RED}主菜单${RESET}" "3) ${BOLD}Return${LIGHT_RED} to main menu${RESET}"
+MENU_ECHO "0) ${BOLD}退出脚本${RESET}" "0) ${BOLD}Exit${RESET}"
 echo "---------------------------------------------------------------"
 read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" cmd_choice
 
@@ -2590,10 +2888,17 @@ CONFIREM_ACTION() {
 }
 
 SEPARATOR "卸载服务"
-echo -e "1) ${BOLD}卸载${LIGHT_YELLOW}所有服务${RESET}"
-echo -e "2) ${BOLD}删除${LIGHT_CYAN}指定服务${RESET}"
-echo -e "3) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
-echo -e "0) ${BOLD}退出脚本${RESET}"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "1) ${BOLD}Uninstall${LIGHT_YELLOW} all services${RESET}"
+    echo -e "2) ${BOLD}Remove${LIGHT_CYAN} selected services${RESET}"
+    echo -e "3) ${BOLD}Return${LIGHT_RED} to main menu${RESET}"
+    echo -e "0) ${BOLD}Exit${RESET}"
+else
+    echo -e "1) ${BOLD}卸载${LIGHT_YELLOW}所有服务${RESET}"
+    echo -e "2) ${BOLD}删除${LIGHT_CYAN}指定服务${RESET}"
+    echo -e "3) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
+    echo -e "0) ${BOLD}退出脚本${RESET}"
+fi
 echo "---------------------------------------------------------------"
 read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" rm_choice
 
@@ -2623,10 +2928,17 @@ esac
 # 本机Docker代理
 function DOCKER_PROXY() {
 SEPARATOR "Docker服务代理"
-echo -e "1) ${BOLD}${LIGHT_GREEN}添加${RESET}本机Docker代理"
-echo -e "2) ${BOLD}${YELLOW}移除${RESET}本机Docker代理"
-echo -e "3) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
-echo -e "0) ${BOLD}退出脚本${RESET}"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "1) ${BOLD}${LIGHT_GREEN}Add${RESET} local Docker proxy"
+    echo -e "2) ${BOLD}${YELLOW}Remove${RESET} local Docker proxy"
+    echo -e "3) ${BOLD}Return${LIGHT_RED} to main menu${RESET}"
+    echo -e "0) ${BOLD}Exit${RESET}"
+else
+    echo -e "1) ${BOLD}${LIGHT_GREEN}添加${RESET}本机Docker代理"
+    echo -e "2) ${BOLD}${YELLOW}移除${RESET}本机Docker代理"
+    echo -e "3) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
+    echo -e "0) ${BOLD}退出脚本${RESET}"
+fi
 echo "---------------------------------------------------------------"
 read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" main_choice
 
@@ -2674,9 +2986,9 @@ function IP_BLACKWHITE_LIST() {
     get_chain_name() {
         local chain=$1
         case $chain in
-            $BLACKLIST_CHAIN) echo "黑名单" ;;
-            $WHITELIST_CHAIN) echo "白名单" ;;
-            *) echo "未知名单" ;;
+            $BLACKLIST_CHAIN) [[ "$SCRIPT_LANG" == "en" ]] && echo "denylist" || echo "黑名单" ;;
+            $WHITELIST_CHAIN) [[ "$SCRIPT_LANG" == "en" ]] && echo "allowlist" || echo "白名单" ;;
+            *) [[ "$SCRIPT_LANG" == "en" ]] && echo "unknown list" || echo "未知名单" ;;
         esac
     }
 
@@ -2848,11 +3160,11 @@ function IP_BLACKWHITE_LIST() {
 
         while true; do
             echo "---------------------------------------------------------------"
-            echo -e "1) ${BOLD}添加IP到白名单${RESET}"
-            echo -e "2) ${BOLD}从白名单移除IP${RESET}"
-            echo -e "3) ${BOLD}查看当前白名单${RESET}"
-            echo -e "4) ${BOLD}应用白名单规则${RESET}"
-            echo -e "5) ${BOLD}返回上一级${RESET}"
+            MENU_ECHO "1) ${BOLD}添加IP到白名单${RESET}" "1) ${BOLD}Add IPs to allowlist${RESET}"
+            MENU_ECHO "2) ${BOLD}从白名单移除IP${RESET}" "2) ${BOLD}Remove IPs from allowlist${RESET}"
+            MENU_ECHO "3) ${BOLD}查看当前白名单${RESET}" "3) ${BOLD}View current allowlist${RESET}"
+            MENU_ECHO "4) ${BOLD}应用白名单规则${RESET}" "4) ${BOLD}Apply allowlist rules${RESET}"
+            MENU_ECHO "5) ${BOLD}返回上一级${RESET}" "5) ${BOLD}Return${RESET}"
             echo "---------------------------------------------------------------"
             read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" whitelist_choice
 
@@ -2938,10 +3250,10 @@ function IP_BLACKWHITE_LIST() {
 
         while true; do
             echo "---------------------------------------------------------------"
-            echo -e "1) ${BOLD}添加IP到黑名单${RESET}"
-            echo -e "2) ${BOLD}从黑名单移除IP${RESET}"
-            echo -e "3) ${BOLD}查看当前黑名单${RESET}"
-            echo -e "4) ${BOLD}返回上一级${RESET}"
+            MENU_ECHO "1) ${BOLD}添加IP到黑名单${RESET}" "1) ${BOLD}Add IPs to denylist${RESET}"
+            MENU_ECHO "2) ${BOLD}从黑名单移除IP${RESET}" "2) ${BOLD}Remove IPs from denylist${RESET}"
+            MENU_ECHO "3) ${BOLD}查看当前黑名单${RESET}" "3) ${BOLD}View current denylist${RESET}"
+            MENU_ECHO "4) ${BOLD}返回上一级${RESET}" "4) ${BOLD}Return${RESET}"
             echo "---------------------------------------------------------------"
             read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" blacklist_choice
 
@@ -2993,10 +3305,10 @@ function IP_BLACKWHITE_LIST() {
 
     while true; do
         SEPARATOR "设置IP黑白名单"
-        echo -e "1) ${BOLD}管理${LIGHT_GREEN}白名单${RESET}"
-        echo -e "2) ${BOLD}管理${LIGHT_CYAN}黑名单${RESET}"
-        echo -e "3) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
-        echo -e "0) ${BOLD}退出脚本${RESET}"
+        MENU_ECHO "1) ${BOLD}管理${LIGHT_GREEN}白名单${RESET}" "1) Manage ${BOLD}${LIGHT_GREEN}allowlist${RESET}"
+        MENU_ECHO "2) ${BOLD}管理${LIGHT_CYAN}黑名单${RESET}" "2) Manage ${BOLD}${LIGHT_CYAN}denylist${RESET}"
+        MENU_ECHO "3) ${BOLD}返回${LIGHT_RED}主菜单${RESET}" "3) ${BOLD}Return${LIGHT_RED} to main menu${RESET}"
+        MENU_ECHO "0) ${BOLD}退出脚本${RESET}" "0) ${BOLD}Exit${RESET}"
         echo "---------------------------------------------------------------"
         read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" ipblack_choice
 
@@ -3184,13 +3496,25 @@ RU_EOF
 # 其他工具
 function OtherTools() {
 SEPARATOR "其他工具"
-echo -e "1) 设置${BOLD}${YELLOW}系统命令${RESET}"
-echo -e "2) 配置${BOLD}${LIGHT_MAGENTA}IP黑白名单${RESET}"
-echo -e "3) 重置${BOLD}${LIGHT_GREEN}管理面板用户密码${RESET}"
-echo -e "4) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
-echo -e "0) ${BOLD}退出脚本${RESET}"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "1) Configure ${BOLD}${YELLOW}system commands${RESET}"
+    echo -e "2) Configure ${BOLD}${LIGHT_MAGENTA}IP allow/deny lists${RESET}"
+    echo -e "3) Reset ${BOLD}${LIGHT_GREEN}admin password${RESET}"
+    echo -e "4) ${BOLD}Return${LIGHT_RED} to main menu${RESET}"
+    echo -e "0) ${BOLD}Exit${RESET}"
+else
+    echo -e "1) 设置${BOLD}${YELLOW}系统命令${RESET}"
+    echo -e "2) 配置${BOLD}${LIGHT_MAGENTA}IP黑白名单${RESET}"
+    echo -e "3) 重置${BOLD}${LIGHT_GREEN}管理面板用户密码${RESET}"
+    echo -e "4) ${BOLD}返回${LIGHT_RED}主菜单${RESET}"
+    echo -e "0) ${BOLD}退出脚本${RESET}"
+fi
 echo "---------------------------------------------------------------"
-read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" main_choice
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    read -e -p "$(INFO "Enter a number and press ${LIGHT_GREEN}Enter${RESET} > ")" main_choice
+else
+    read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" main_choice
+fi
 
 case $main_choice in
     1)
@@ -3210,7 +3534,11 @@ case $main_choice in
         exit 1
         ;;
     *)
-        WARN "输入了无效的选择。请重新${LIGHT_GREEN}选择0-4${RESET}的选项."
+        if [[ "$SCRIPT_LANG" == "en" ]]; then
+            WARN "Invalid choice. Please select an option from ${LIGHT_GREEN}0-4${RESET}."
+        else
+            WARN "输入了无效的选择。请重新${LIGHT_GREEN}选择0-4${RESET}的选项."
+        fi
         sleep 2; OtherTools
         ;;
 esac
@@ -3220,25 +3548,48 @@ esac
 function main_menu() {
 echo -e "╔════════════════════════════════════════════════════╗"
 echo -e "║                                                    ║"
-echo -e "║                ${LIGHT_CYAN}欢迎使用Docker-Proxy${RESET}                ║"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "║                ${LIGHT_CYAN}Welcome to Docker-Proxy${RESET}                ║"
+else
+    echo -e "║                ${LIGHT_CYAN}欢迎使用Docker-Proxy${RESET}                ║"
+fi
 echo -e "║                                                    ║"
-echo -e "║        TG交流群: ${UNDERLINE}https://t.me/Docker_Proxy${RESET}         ║"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "║        TG group: ${UNDERLINE}https://t.me/Docker_Proxy${RESET}         ║"
+else
+    echo -e "║        TG交流群: ${UNDERLINE}https://t.me/Docker_Proxy${RESET}         ║"
+fi
 echo -e "║                                                    ║"
 echo -e "║                                       ${LIGHT_BLUE}by dqzboy${RESET}    ║"
 echo -e "║                                                    ║"
 echo -e "╚════════════════════════════════════════════════════╝"
 echo
 SEPARATOR "请选择操作"
-echo -e "1) ${BOLD}${LIGHT_GREEN}安装${RESET}服务"
-echo -e "2) ${BOLD}${LIGHT_MAGENTA}组件${RESET}安装"
-echo -e "3) ${BOLD}${LIGHT_YELLOW}管理${RESET}服务"
-echo -e "4) ${BOLD}${LIGHT_CYAN}更新${RESET}配置"
-echo -e "5) ${BOLD}${LIGHT_RED}卸载${RESET}服务"
-echo -e "6) 本机${BOLD}${CYAN}Docker代理${RESET}"
-echo -e "7) 其他${BOLD}${YELLOW}工具${RESET}"
-echo -e "0) ${BOLD}退出脚本${RESET}"
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    echo -e "1) ${BOLD}${LIGHT_GREEN}Install${RESET} services"
+    echo -e "2) ${BOLD}${LIGHT_MAGENTA}Install${RESET} components"
+    echo -e "3) ${BOLD}${LIGHT_YELLOW}Manage${RESET} services"
+    echo -e "4) ${BOLD}${LIGHT_CYAN}Update${RESET} configuration"
+    echo -e "5) ${BOLD}${LIGHT_RED}Uninstall${RESET} services"
+    echo -e "6) Local ${BOLD}${CYAN}Docker proxy${RESET}"
+    echo -e "7) ${BOLD}${YELLOW}Other${RESET} tools"
+    echo -e "0) ${BOLD}Exit${RESET}"
+else
+    echo -e "1) ${BOLD}${LIGHT_GREEN}安装${RESET}服务"
+    echo -e "2) ${BOLD}${LIGHT_MAGENTA}组件${RESET}安装"
+    echo -e "3) ${BOLD}${LIGHT_YELLOW}管理${RESET}服务"
+    echo -e "4) ${BOLD}${LIGHT_CYAN}更新${RESET}配置"
+    echo -e "5) ${BOLD}${LIGHT_RED}卸载${RESET}服务"
+    echo -e "6) 本机${BOLD}${CYAN}Docker代理${RESET}"
+    echo -e "7) 其他${BOLD}${YELLOW}工具${RESET}"
+    echo -e "0) ${BOLD}退出脚本${RESET}"
+fi
 echo "---------------------------------------------------------------"
-read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" main_choice
+if [[ "$SCRIPT_LANG" == "en" ]]; then
+    read -e -p "$(INFO "Enter a number and press ${LIGHT_GREEN}Enter${RESET} > ")" main_choice
+else
+    read -e -p "$(INFO "输入${LIGHT_CYAN}对应数字${RESET}并按${LIGHT_GREEN}Enter${RESET}键 > ")" main_choice
+fi
 
 case $main_choice in
     1)
@@ -3266,7 +3617,11 @@ case $main_choice in
         exit 1
         ;;
     *)
-        WARN "输入了无效的选择。请重新${LIGHT_GREEN}选择0-7${RESET}的选项."
+        if [[ "$SCRIPT_LANG" == "en" ]]; then
+            WARN "Invalid choice. Please select an option from ${LIGHT_GREEN}0-7${RESET}."
+        else
+            WARN "输入了无效的选择。请重新${LIGHT_GREEN}选择0-7${RESET}的选项."
+        fi
         sleep 2; main_menu
         ;;
 esac
