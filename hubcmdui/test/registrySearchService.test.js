@@ -49,6 +49,33 @@ test('Docker Hub 搜索不禁用 Axios 的环境代理支持', async () => {
   );
 });
 
+test('Registry 运行参数可热更新并提供当前快照', () => {
+  const service = loadServiceWithAxios({ async get() { return { data: {} }; } });
+  const original = service.getRuntimeSettingsSnapshot();
+
+  try {
+    service.applyRuntimeSettings({
+      registryTagCacheTtlMs: 120000,
+      registryTagMetadataConcurrency: 4,
+      registryTagsMax: 1200,
+      registryCacheMaxEntries: 64,
+      registryTokenCacheMaxEntries: 32,
+      registryCacheCleanupIntervalMs: 15000
+    });
+
+    assert.deepEqual(service.getRuntimeSettingsSnapshot(), {
+      registryTagCacheTtlMs: 120000,
+      registryTagMetadataConcurrency: 4,
+      registryTagsMax: 1200,
+      registryCacheMaxEntries: 64,
+      registryTokenCacheMaxEntries: 32,
+      registryCacheCleanupIntervalMs: 15000
+    });
+  } finally {
+    service.applyRuntimeSettings(original);
+  }
+});
+
 test('GHCR 精确镜像输入先通过 tags/list 验证，GitHub 搜索不再强制 topic 过滤', async () => {
   const urls = [];
   let tagAttempts = 0;

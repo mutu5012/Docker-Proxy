@@ -32,27 +32,24 @@ function parsePositiveIntEnv(name, fallback, minimum = 1) {
 }
 
 const OCI_TAG_LIST_PAGE_SIZE = parsePositiveIntEnv('REGISTRY_TAG_LIST_PAGE_SIZE', 100);
-const MAX_OCI_TAGS = parsePositiveIntEnv('REGISTRY_TAGS_MAX', 5000);
-const OCI_TAG_CACHE_TTL_MS = parsePositiveIntEnv(
+let MAX_OCI_TAGS = parsePositiveIntEnv('REGISTRY_TAGS_MAX', 5000);
+let OCI_TAG_CACHE_TTL_MS = parsePositiveIntEnv(
   'REGISTRY_TAG_CACHE_TTL_MS',
   30 * 60 * 1000
 );
-const OCI_METADATA_CONCURRENCY = parsePositiveIntEnv(
+let OCI_METADATA_CONCURRENCY = parsePositiveIntEnv(
   'REGISTRY_TAG_METADATA_CONCURRENCY',
   8
 );
-// Keep all registry search/tag caches bounded. A tag list can contain thousands
-// of strings, so an unbounded Map would retain one large value for every unique
-// query/image until the process restarts.
-const REGISTRY_CACHE_MAX_ENTRIES = parsePositiveIntEnv(
+let REGISTRY_CACHE_MAX_ENTRIES = parsePositiveIntEnv(
   'REGISTRY_CACHE_MAX_ENTRIES',
   512
 );
-const REGISTRY_TOKEN_CACHE_MAX_ENTRIES = parsePositiveIntEnv(
+let REGISTRY_TOKEN_CACHE_MAX_ENTRIES = parsePositiveIntEnv(
   'REGISTRY_TOKEN_CACHE_MAX_ENTRIES',
   256
 );
-const REGISTRY_CACHE_CLEANUP_INTERVAL_MS = parsePositiveIntEnv(
+let REGISTRY_CACHE_CLEANUP_INTERVAL_MS = parsePositiveIntEnv(
   'REGISTRY_CACHE_CLEANUP_INTERVAL_MS',
   60 * 1000
 );
@@ -110,6 +107,11 @@ class TtlLruCache {
     this.store.clear();
   }
 
+  resize(maxEntries) {
+    this.maxEntries = maxEntries;
+    this.evictOverflow();
+  }
+
   cleanup(now = Date.now()) {
     for (const [key, hit] of this.store) {
       if (hit.expiresAt <= now) this.store.delete(key);
@@ -151,12 +153,51 @@ function setCache(key, value, ttlMs = OCI_TAG_CACHE_TTL_MS) {
 
 // Expiry is normally checked lazily on reads, but a periodic sweep releases
 // expired arrays/tokens even when a cache key is never requested again.
-const cacheCleanupTimer = setInterval(() => {
-  cacheStore.cleanup();
-  tokenCache.cleanup();
-  credentialRefreshThrottle.cleanup();
-}, REGISTRY_CACHE_CLEANUP_INTERVAL_MS);
-cacheCleanupTimer.unref?.();
+let cacheCleanupTimer = null;
+
+function startCacheCleanupTimer() {
+  if (cacheCleanupTimer) clearInterval(cacheCleanupTimer);
+  cacheCleanupTimer = setInterval(() => {
+    cacheStore.cleanup();
+    tokenCache.cleanup();
+    credentialRefreshThrottle.cleanup();
+  }, REGISTRY_CACHE_CLEANUP_INTERVAL_MS);
+  cacheCleanupTimer.unref?.();
+}
+
+function clearRegistryCaches() {
+  cacheStore.clear();
+  tokenCache.clear();
+  credentialRefreshThrottle.clear();
+}
+
+function applyRuntimeSettings(settings = {}) {
+  MAX_OCI_TAGS = settings.registryTagsMax || MAX_OCI_TAGS;
+  OCI_TAG_CACHE_TTL_MS = settings.registryTagCacheTtlMs || OCI_TAG_CACHE_TTL_MS;
+  OCI_METADATA_CONCURRENCY = settings.registryTagMetadataConcurrency || OCI_METADATA_CONCURRENCY;
+  REGISTRY_CACHE_MAX_ENTRIES = settings.registryCacheMaxEntries || REGISTRY_CACHE_MAX_ENTRIES;
+  REGISTRY_TOKEN_CACHE_MAX_ENTRIES = settings.registryTokenCacheMaxEntries || REGISTRY_TOKEN_CACHE_MAX_ENTRIES;
+  REGISTRY_CACHE_CLEANUP_INTERVAL_MS = settings.registryCacheCleanupIntervalMs || REGISTRY_CACHE_CLEANUP_INTERVAL_MS;
+
+  cacheStore.resize(REGISTRY_CACHE_MAX_ENTRIES);
+  tokenCache.resize(REGISTRY_TOKEN_CACHE_MAX_ENTRIES);
+  credentialRefreshThrottle.resize(REGISTRY_TOKEN_CACHE_MAX_ENTRIES);
+  clearRegistryCaches();
+  startCacheCleanupTimer();
+}
+
+function getRuntimeSettingsSnapshot() {
+  return {
+    registryTagsMax: MAX_OCI_TAGS,
+    registryTagCacheTtlMs: OCI_TAG_CACHE_TTL_MS,
+    registryTagMetadataConcurrency: OCI_METADATA_CONCURRENCY,
+    registryCacheMaxEntries: REGISTRY_CACHE_MAX_ENTRIES,
+    registryTokenCacheMaxEntries: REGISTRY_TOKEN_CACHE_MAX_ENTRIES,
+    registryCacheCleanupIntervalMs: REGISTRY_CACHE_CLEANUP_INTERVAL_MS
+  };
+}
+
+startCacheCleanupTimer();
 
 /**
  * 将官方镜像（isOfficial === true）稳定地排到结果列表最前面，组内保持原有相对顺序。
@@ -2205,6 +2246,9 @@ module.exports = {
   searchNVCR,
   normalizeRegistrySearchTerm,
   buildRegistryTagsUrl,
+  applyRuntimeSettings,
+  getRuntimeSettingsSnapshot,
+  clearRegistryCaches,
   REGISTRY_CONFIGS,
   STATIC_IMAGE_LISTS
 };

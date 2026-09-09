@@ -4,6 +4,7 @@
 
 const { exec } = require('child_process');
 const os = require('os');
+const runtimeSettingsService = require('./services/runtimeSettingsService');
 const fs = require('fs').promises;
 const path = require('path');
 const logger = require('./logger');
@@ -89,9 +90,8 @@ async function getSystemInfo() {
     
     return {
       platform,
-      // 优先使用部署时通过环境变量 HOST_NAME 传入的真实宿主机名；
-      // 未设置时回退到 os.hostname()，在 Docker 中默认是容器 ID。
-      hostname: process.env.HOST_NAME || os.hostname(),
+      // 优先使用后台运行参数中的真实宿主机名；未设置时回退到容器 hostname。
+      hostname: runtimeSettingsService.get('hostName') || os.hostname(),
       memory: memoryInfo,
       cpu: cpuInfo,
       disk: diskInfo,

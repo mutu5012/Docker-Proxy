@@ -12,9 +12,11 @@ services:
     environment:
       - OTEL_TRACES_EXPORTER=none
       - GO_PROXY_ADMIN_TOKEN=${GO_PROXY_ADMIN_TOKEN:-change-me-to-a-strong-random-token}
-      # 如需通过本地代理访问上游，可设置：
+      # 出站代理由一键安装脚本按需写入；默认关闭。
+      # HTTPS_PROXY 通常也使用 http:// 地址，由代理通过 HTTP CONNECT 转发 HTTPS。
       # - HTTP_PROXY=http://host:port
       # - HTTPS_PROXY=http://host:port
+      # - NO_PROXY=localhost,127.0.0.1,::1,go-proxy,reg-go-proxy,hubcmd-ui,.local
     volumes:
       # 配置持久化：宿主机目录挂载，容器内配置在 /app/config.d/config.yaml
       - ./config/go-proxy:/app/config.d
@@ -35,26 +37,14 @@ services:
       # 指向 go-proxy 的管理端口
       - GO_PROXY_ADMIN_URL=http://go-proxy:5001
       - GO_PROXY_ADMIN_TOKEN=${GO_PROXY_ADMIN_TOKEN:-change-me-to-a-strong-random-token}
-      # 真实宿主机名
-      - HOST_NAME=${HOST_NAME:-}
       # 会话签名密钥。生成：openssl rand -hex 32
       - SESSION_SECRET=${SESSION_SECRET:-}
-      - SECURE_COOKIE=false
-      # HTTP 代理配置：前台镜像搜索由 hubcmd-ui 直接访问 Docker Hub/GitHub/Quay 等 API，
-      # 受限网络中必须把代理环境变量传给 hubcmd-ui。HTTPS_PROXY 也通常填写 http:// 代理地址
-      # （HTTP CONNECT），不要误写成 https://，除非代理端口本身启用了 TLS。
-      - HTTP_PROXY=${HTTP_PROXY:-}
-      - HTTPS_PROXY=${HTTPS_PROXY:-}
-      # Docker 内部服务名必须绕过出口代理，否则 hubcmd-ui 访问 go-proxy 管理端口可能被误转发。
-      - NO_PROXY=${NO_PROXY:-localhost,127.0.0.1,::1,go-proxy,reg-go-proxy,hubcmd-ui,.local}
-      # Registry 标签详情性能参数；留空时使用应用默认值。
-      - REGISTRY_TAG_CACHE_TTL_MS=${REGISTRY_TAG_CACHE_TTL_MS:-}
-      - REGISTRY_TAG_METADATA_CONCURRENCY=${REGISTRY_TAG_METADATA_CONCURRENCY:-}
-      - REGISTRY_TAGS_MAX=${REGISTRY_TAGS_MAX:-}
-      # 防止搜索/标签请求产生无限增长的内存缓存。
-      - REGISTRY_CACHE_MAX_ENTRIES=${REGISTRY_CACHE_MAX_ENTRIES:-}
-      - REGISTRY_TOKEN_CACHE_MAX_ENTRIES=${REGISTRY_TOKEN_CACHE_MAX_ENTRIES:-}
-      - REGISTRY_CACHE_CLEANUP_INTERVAL_MS=${REGISTRY_CACHE_CLEANUP_INTERVAL_MS:-}
+      # 前台镜像搜索会直接访问 Docker Hub、GitHub、Quay 等外部 API。
+      # 一键安装脚本配置上游代理时会与 go-proxy 同步启用以下三项；默认关闭。
+      # - HTTP_PROXY=http://host:port
+      # - HTTPS_PROXY=http://host:port
+      # - NO_PROXY=localhost,127.0.0.1,::1,go-proxy,reg-go-proxy,hubcmd-ui,.local
+      # HOST_NAME、SECURE_COOKIE 与 Registry 性能参数在后台「系统参数」页面管理。
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       # SQLite 数据库文件

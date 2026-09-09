@@ -1,4 +1,5 @@
 import axios from 'axios'
+import i18n from '../i18n'
 
 const api = axios.create({
   baseURL: '/api',
@@ -17,6 +18,7 @@ const api = axios.create({
 //  - 用动态 import 加载 router / element-plus：避免 services ↔ router ↔ views
 //    形成循环依赖（services 已被 Login.vue / Landing.vue 等视图静态引入）。
 //  - _pwdDialogShown 闸门：并发 403（dashboard 一启动就拉 5 个接口）只弹一次。
+//  - 先弹窗说明原因，用户确认后再进入用户中心，避免毫无解释地切换页面。
 //  - 当前已在 user 中心页时不重复 push：避免 vue-router 4 的 NavigationDuplicated。
 // =====================================================================
 let _pwdDialogShown = false
@@ -29,21 +31,22 @@ async function _handleDefaultPasswordLockout() {
       _loadRouter(),
       _loadElMsgBox()
     ])
-    if (router.currentRoute?.value?.name !== 'user') {
-      // 已在 /admin/user 时跳过 push；vue-router 4 对重复路由会抛 NavigationDuplicated
-      try {
-        await router.push({ name: 'user', query: { forceChange: '1' } })
-      } catch (e) { /* 静默吞掉 */ }
-    }
+    const t = i18n.global.t
     await ElMessageBox.alert(
-      '当前会话仍使用出厂默认密码，请先修改密码后再使用其他功能',
-      '安全提示',
+      t('login.passwordRequired'),
+      t('login.securityTitle'),
       {
-        confirmButtonText: '立即修改',
+        confirmButtonText: t('login.changePasswordNow'),
         showClose: false,
         type: 'warning'
       }
     )
+    if (router.currentRoute?.value?.name !== 'user') {
+      // 用户确认了解原因后再进入修改密码页面。
+      try {
+        await router.push({ name: 'user', query: { forceChange: '1' } })
+      } catch (e) { /* 静默吞掉 */ }
+    }
   } catch (e) {
     // 拦截器自身失败不应影响主流程；闸门仍需在 finally 重置，否则后续 403 全静音
   } finally {
@@ -114,6 +117,15 @@ export const updateRegistryConfig = (registryId, cfg) =>
   api.put(`/config/registry-configs/${registryId}`, cfg).then(r => r.data)
 export const batchUpdateRegistryConfigs = (configs) =>
   api.post('/config/registry-configs', { configs }).then(r => r.data)
+
+// ============ Hubcmd UI 运行参数 ============
+export const getRuntimeSettings = () => api.get('/runtimeSettings').then(r => r.data)
+export const updateRuntimeSettings = (settings) =>
+  api.put('/runtimeSettings', { settings }).then(r => r.data)
+export const resetRuntimeSettings = () =>
+  api.post('/runtimeSettings/defaults').then(r => r.data)
+export const restartManagementUi = () =>
+  api.post('/runtimeSettings/restart-ui').then(r => r.data)
 
 // ============ 系统 / 网络测试 ============
 export const getSystemResources = () => api.get('/system-resources').then(r => r.data)

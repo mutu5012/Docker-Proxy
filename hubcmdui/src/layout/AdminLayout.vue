@@ -1,7 +1,7 @@
 <template>
   <el-container class="admin-root">
     <!-- 侧边栏 -->
-    <el-aside width="230px" class="admin-aside">
+    <el-aside width="216px" class="admin-aside">
       <div class="brand">
         <span class="brand-logo">
           <img v-if="logo" :src="logo" alt="Docker 镜像加速服务" />
@@ -19,9 +19,10 @@
           :to="{ name: item.name }"
           class="side-link"
           :class="{ active: isActive(item) }"
+          :title="t('nav.' + item.name)"
         >
           <el-icon class="side-icon"><component :is="item.icon" /></el-icon>
-          <span>{{ t('nav.' + item.name) }}</span>
+          <span class="side-label">{{ t('nav.' + item.name) }}</span>
         </router-link>
       </nav>
       <div class="aside-foot">
@@ -98,7 +99,7 @@ import { useI18n } from 'vue-i18n'
 import {
   Odometer, Cpu, Connection, Document, Operation,
   Histogram, Monitor, User, SwitchButton,
-  Sunny, Moon, CaretBottom, Setting, DataLine, Lock
+  Sunny, Moon, CaretBottom, Setting, DataLine, Lock, Tools
 } from '@element-plus/icons-vue'
 import { getConfig, getUserInfo, logout, getSiteInfo } from '../services'
 import { useTheme } from '../composables/useTheme'
@@ -108,6 +109,7 @@ import LangSwitch from '../components/LangSwitch.vue'
 const nav = [
   { name: 'dashboard', title: '系统看板', icon: Odometer },
   { name: 'basic', title: '基本配置', icon: Setting },
+  { name: 'runtimeSettings', title: '系统参数', icon: Tools },
   { name: 'docker', title: '容器管理', icon: Cpu },
   { name: 'goproxy', title: '代理管理', icon: Connection },
   { name: 'ipaccess', title: 'IP 访问控制', icon: Lock },
@@ -206,12 +208,15 @@ onMounted(async () => {
 .admin-root { height: 100vh; overflow: hidden; background: var(--bg-page); }
 
 .admin-aside {
+  width: 216px;
+  flex: 0 0 216px;
   background: var(--aside-bg);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow-y: auto;
+  transition: width .2s ease, flex-basis .2s ease;
 }
 .brand { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .brand-logo img { height: 30px; width: auto; display: block; }
@@ -250,7 +255,7 @@ onMounted(async () => {
   background: var(--header-bg);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; height: 56px;
+  padding: 0 20px 0 26px; height: 56px;
   flex: 0 0 auto;
   z-index: 5;
 }
@@ -269,5 +274,31 @@ onMounted(async () => {
 .theme-text { font-weight: 500; }
 .caret { font-size: 10px; opacity: .7; }
 
-.admin-main { flex: 1; overflow-y: auto; background: var(--bg-page); padding: 20px; }
+.admin-main { flex: 1; overflow-y: auto; background: var(--bg-page); padding: 20px 20px 20px 26px; }
+
+/* 中小屏自动收为图标栏，给主内容释放横向空间。 */
+@media (max-width: 1200px) {
+  .admin-aside {
+    width: 72px !important;
+    flex-basis: 72px;
+  }
+  .brand { justify-content: center; padding: 16px 8px; }
+  .brand-text, .side-label, .foot-tip, .foot-github span { display: none; }
+  .side-nav { padding: 12px 8px; }
+  .side-link { justify-content: center; gap: 0; padding: 10px 8px; }
+  .side-icon { font-size: 18px; }
+  .aside-foot { display: flex; justify-content: center; padding: 12px 8px; }
+  .foot-github { margin-top: 0; }
+}
+
+@media (max-width: 720px) {
+  .admin-aside {
+    width: 64px !important;
+    flex-basis: 64px;
+  }
+  .admin-header { padding: 0 12px 0 18px; }
+  .admin-main { padding: 16px 12px 16px 18px; }
+  .header-right { gap: 8px; }
+  .theme-text, .caret, .header-user span { display: none; }
+}
 </style>

@@ -1633,7 +1633,61 @@ fi
 
 
 
-# 一键部署调此函数：为 go-proxy 容器注入上游代理（用于访问 Docker Hub / GHCR 等上游）
+# 容器内部服务必须绕过出站代理，避免 hubcmd-ui 调用 go-proxy 管理接口时被错误转发。
+COMPOSE_PROXY_NO_PROXY="localhost,127.0.0.1,::1,go-proxy,reg-go-proxy,hubcmd-ui,.local"
+
+# 同时为 go-proxy 与 hubcmd-ui 写入出站代理环境变量。
+function SET_COMPOSE_PROXY_ENV() {
+    local compose_file="$1"
+    local proxy_address="$2"
+    proxy_address="${proxy_address#http://}"
+    proxy_address="${proxy_address#https://}"
+
+    [[ -f "$compose_file" ]] || return 1
+    awk -v px="$proxy_address" -v no_proxy="$COMPOSE_PROXY_NO_PROXY" '
+        /^  (go-proxy|hubcmd-ui):[[:space:]]*$/ { in_proxy_service=1; print; next }
+        /^  [a-zA-Z0-9_-]+:/ { in_proxy_service=0 }
+        in_proxy_service && /^[[:space:]]*#?[[:space:]]*-[[:space:]]*HTTP_PROXY=/ {
+            print "      - HTTP_PROXY=http://" px
+            next
+        }
+        in_proxy_service && /^[[:space:]]*#?[[:space:]]*-[[:space:]]*HTTPS_PROXY=/ {
+            print "      - HTTPS_PROXY=http://" px
+            next
+        }
+        in_proxy_service && /^[[:space:]]*#?[[:space:]]*-[[:space:]]*NO_PROXY=/ {
+            print "      - NO_PROXY=" no_proxy
+            next
+        }
+        { print }
+    ' "$compose_file" > "$compose_file.tmp" && mv "$compose_file.tmp" "$compose_file"
+}
+
+# 将前后端两个服务的出站代理恢复为默认注释状态。
+function CLEAR_COMPOSE_PROXY_ENV() {
+    local compose_file="$1"
+
+    [[ -f "$compose_file" ]] || return 1
+    awk -v no_proxy="$COMPOSE_PROXY_NO_PROXY" '
+        /^  (go-proxy|hubcmd-ui):[[:space:]]*$/ { in_proxy_service=1; print; next }
+        /^  [a-zA-Z0-9_-]+:/ { in_proxy_service=0 }
+        in_proxy_service && /^[[:space:]]*#?[[:space:]]*-[[:space:]]*HTTP_PROXY=/ {
+            print "      # - HTTP_PROXY=http://host:port"
+            next
+        }
+        in_proxy_service && /^[[:space:]]*#?[[:space:]]*-[[:space:]]*HTTPS_PROXY=/ {
+            print "      # - HTTPS_PROXY=http://host:port"
+            next
+        }
+        in_proxy_service && /^[[:space:]]*#?[[:space:]]*-[[:space:]]*NO_PROXY=/ {
+            print "      # - NO_PROXY=" no_proxy
+            next
+        }
+        { print }
+    ' "$compose_file" > "$compose_file.tmp" && mv "$compose_file.tmp" "$compose_file"
+}
+
+# 一键部署调此函数：为前后端容器注入上游代理（用于访问 Docker Hub / GHCR 等上游）
 function PROXY_HTTP() {
 if [[ "$DEPLOY_REGION" == "foreign" ]]; then
     if [[ "$SCRIPT_LANG" == "en" ]]; then
@@ -1645,9 +1699,9 @@ if [[ "$DEPLOY_REGION" == "foreign" ]]; then
 fi
 
 if [[ "$SCRIPT_LANG" == "en" ]]; then
-    read -e -p "$(INFO "Add an upstream proxy for go-proxy to access Docker Hub/GHCR? ${PROMPT_YES_NO}")" modify_config
+    read -e -p "$(INFO "Add an upstream proxy for go-proxy and hubcmd-ui to access Docker Hub/GHCR? ${PROMPT_YES_NO}")" modify_config
 else
-    read -e -p "$(INFO "是否添加上游代理(科学上网, 用于 go-proxy 访问 Docker Hub/GHCR 等上游)? ${PROMPT_YES_NO}")" modify_config
+    read -e -p "$(INFO "是否添加上游代理(科学上网, 用于前后端访问 Docker Hub/GHCR 等上游)? ${PROMPT_YES_NO}")" modify_config
 fi
 case $modify_config in
   [Yy]* )
@@ -1665,13 +1719,17 @@ case $modify_config in
         read -e -p "$(INFO "输入代理地址(科学上网) ${LIGHT_MAGENTA}(eg: host:port)${RESET}: ")" url
       fi
     done
-    sed -i "s@# - HTTP_PROXY=http://host:port@- HTTP_PROXY=http://${url}@g" ${PROXY_DIR}/${DOCKER_COMPOSE_FILE}
-    sed -i "s@# - HTTPS_PROXY=http://host:port@- HTTPS_PROXY=http://${url}@g" ${PROXY_DIR}/${DOCKER_COMPOSE_FILE}
+    url="${url#http://}"
+    url="${url#https://}"
+    if ! SET_COMPOSE_PROXY_ENV "${PROXY_DIR}/${DOCKER_COMPOSE_FILE}" "$url"; then
+      ERROR "写入 compose 代理配置失败"
+      return 1
+    fi
 
     if [[ "$SCRIPT_LANG" == "en" ]]; then
-      INFO "Upstream proxy configured as: ${CYAN}http://${url}${RESET}"
+      INFO "Upstream proxy configured for go-proxy and hubcmd-ui: ${CYAN}http://${url}${RESET}"
     else
-      INFO "你配置上游代理地址为: ${CYAN}http://${url}${RESET}"
+      INFO "已为 go-proxy 与 hubcmd-ui 配置上游代理: ${CYAN}http://${url}${RESET}"
     fi
     ;;
   [Nn]* )
@@ -1837,10 +1895,6 @@ GO_PROXY_ADMIN_TOKEN=$token
 # 修改此值会使所有已登录用户登出一次
 SESSION_SECRET=$session_secret
 
-# 真实宿主机名（仪表盘「主机」展示用）。默认取安装时宿主机的 hostname，
-# 如需修改可手动改成任意名称后重新 up -d。
-HOST_NAME=$(hostname)
-
 # 镜像地址 (可选覆盖, 等号右侧为默认值)
 # 若构建时未选择 latest 标签, 请在此显式指定对应标签, 否则默认拉取 :latest 会失败
 REGISTRY_IMAGE=dqzboy/registry:latest
@@ -1941,7 +1995,7 @@ function STOP_REMOVE_CONTAINER() {
 
 # go-proxy 运行时配置文件（宿主机路径，由容器挂载 /app/config.d/config.yaml）
 GO_PROXY_CONFIG="${PROXY_DIR}/config/go-proxy/config.yaml"
-# go-proxy 出口代理写在 compose 的 go-proxy 服务环境变量里
+# go-proxy 与 hubcmd-ui 的出口代理写在 compose 对应服务的环境变量里
 COMPOSE_FILE="${PROXY_DIR}/${DOCKER_COMPOSE_FILE}"
 
 # 校验 YAML 语法（依赖 python3 或 yq，缺失则跳过）
@@ -2024,16 +2078,14 @@ function SET_LOG_LEVEL() {
     INFO "日志级别已设置为: ${LIGHT_CYAN}${lvl}${RESET}"
 }
 
-# 4) 配置 go-proxy 容器出口代理（上游 registry 走本地代理访问）
-#    注意：compose 中 go-proxy 与 hubcmd-ui 两个服务都有代理占位符，
-#    必须用 awk 将修改限定在 go-proxy 服务块内，避免误伤 hubcmd-ui。
+# 4) 同时配置 go-proxy 与 hubcmd-ui 容器出口代理。
 function SET_UPSTREAM_PROXY() {
     if [[ ! -f "$COMPOSE_FILE" ]]; then
         ERROR "compose 文件不存在: ${LIGHT_BLUE}${COMPOSE_FILE}${RESET}"
         return 1
     fi
     echo
-    INFO "为 go-proxy 容器配置出口代理，用于通过本地代理（如科学上网）访问上游 registry"
+    INFO "为 go-proxy 与 hubcmd-ui 配置出口代理，用于通过本地代理访问上游 registry 和外部 API"
     MENU_ECHO "  1) ${BOLD}设置${RESET} 上游代理" "  1) ${BOLD}Set${RESET} upstream proxy"
     MENU_ECHO "  2) ${BOLD}清除${RESET} 上游代理" "  2) ${BOLD}Clear${RESET} upstream proxy"
     read -e -p "$(INFO "选择操作 > ")" up_choice
@@ -2044,34 +2096,20 @@ function SET_UPSTREAM_PROXY() {
                 WARN "代理地址不能为空"
                 read -e -p "$(INFO "输入代理地址: ")" px
             done
-            local px_esc
-            px_esc=$(printf '%s' "$px" | sed -e 's/[\\/&|]/\\&/g')
-            awk -v px="$px_esc" '
-                /^  go-proxy:/ { in_gp=1 }
-                in_gp && /^  [a-zA-Z0-9_-]+:/ && $0 !~ /go-proxy:/ { in_gp=0 }
-                in_gp && /^[[:space:]]*#? ?- HTTP_PROXY=http:\/\// {
-                    sub(/^[[:space:]]*#? ?- HTTP_PROXY=http:\/\/.*/, "      - HTTP_PROXY=http://" px)
-                }
-                in_gp && /^[[:space:]]*#? ?- HTTPS_PROXY=http:\/\// {
-                    sub(/^[[:space:]]*#? ?- HTTPS_PROXY=http:\/\/.*/, "      - HTTPS_PROXY=http://" px)
-                }
-                { print }
-            ' "$COMPOSE_FILE" > "$COMPOSE_FILE.tmp" && mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
-            INFO "已为 go-proxy 设置出口代理: ${LIGHT_CYAN}http://${px}${RESET}（需 up -d 生效）"
+            px="${px#http://}"
+            px="${px#https://}"
+            SET_COMPOSE_PROXY_ENV "$COMPOSE_FILE" "$px" || {
+                ERROR "写入 compose 代理配置失败"
+                return 1
+            }
+            INFO "已为 go-proxy 与 hubcmd-ui 设置出口代理: ${LIGHT_CYAN}http://${px}${RESET}（需 up -d 生效）"
             ;;
         2)
-            awk '
-                /^  go-proxy:/ { in_gp=1 }
-                in_gp && /^  [a-zA-Z0-9_-]+:/ && $0 !~ /go-proxy:/ { in_gp=0 }
-                in_gp && /^[[:space:]]*- HTTP_PROXY=http:\/\// {
-                    sub(/^[[:space:]]*- HTTP_PROXY=http:\/\/.*/, "      # - HTTP_PROXY=http://host:port")
-                }
-                in_gp && /^[[:space:]]*- HTTPS_PROXY=http:\/\// {
-                    sub(/^[[:space:]]*- HTTPS_PROXY=http:\/\/.*/, "      # - HTTPS_PROXY=http://host:port")
-                }
-                { print }
-            ' "$COMPOSE_FILE" > "$COMPOSE_FILE.tmp" && mv "$COMPOSE_FILE.tmp" "$COMPOSE_FILE"
-            INFO "已清除 go-proxy 出口代理配置"
+            CLEAR_COMPOSE_PROXY_ENV "$COMPOSE_FILE" || {
+                ERROR "清除 compose 代理配置失败"
+                return 1
+            }
+            INFO "已清除 go-proxy 与 hubcmd-ui 的出口代理配置"
             ;;
         *) ERROR "无效选项"; return 1 ;;
     esac

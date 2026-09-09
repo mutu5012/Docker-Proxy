@@ -102,6 +102,14 @@ function sanitizeRequestBody(req, res, next) {
     if (sanitizedBody.password) sanitizedBody.password = '[REDACTED]';
     if (sanitizedBody.currentPassword) sanitizedBody.currentPassword = '[REDACTED]';
     if (sanitizedBody.newPassword) sanitizedBody.newPassword = '[REDACTED]';
+    // 出站代理 URL 可能内嵌 username/password，错误请求日志中不得记录原值。
+    if (sanitizedBody.httpProxy) sanitizedBody.httpProxy = '[REDACTED]';
+    if (sanitizedBody.httpsProxy) sanitizedBody.httpsProxy = '[REDACTED]';
+    if (sanitizedBody.settings && typeof sanitizedBody.settings === 'object') {
+      sanitizedBody.settings = { ...sanitizedBody.settings };
+      if (sanitizedBody.settings.httpProxy) sanitizedBody.settings.httpProxy = '[REDACTED]';
+      if (sanitizedBody.settings.httpsProxy) sanitizedBody.settings.httpsProxy = '[REDACTED]';
+    }
     
     // 保存清理后的请求体供日志使用
     req.sanitizedBody = sanitizedBody;

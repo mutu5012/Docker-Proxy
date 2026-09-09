@@ -14,6 +14,7 @@
 const si = require('systeminformation');
 const os = require('os');
 const logger = require('../logger');
+const runtimeSettingsService = require('./runtimeSettingsService');
 
 // 预热：systeminformation 的 currentLoad 首次调用返回「自启动以来」的平均值，
 // 这里先空打一次，使后续真实调用得到「采样间隔内」的 CPU 占用率。
@@ -179,8 +180,8 @@ async function getSystemResources() {
       system: {
         platform: osInfo.platform,
         release: osInfo.release,
-        // Docker 中 osInfo.hostname 默认是容器 ID，优先使用部署时传入的 HOST_NAME 环境变量
-        hostname: process.env.HOST_NAME || osInfo.hostname || os.hostname(),
+        // Docker 中 osInfo.hostname 默认是容器 ID，优先使用后台配置的真实宿主机名。
+        hostname: runtimeSettingsService.get('hostName') || osInfo.hostname || os.hostname(),
         uptime: Math.floor(os.uptime())   // 秒（数字），由前端 formatUptime 格式化
       }
     };

@@ -197,6 +197,9 @@ router.get('/check-session', (req, res) => {
     return res.json({
       success: true,
       authenticated: true,
+      // 前端路由守卫据此在进入敏感管理页面前先引导用户修改默认密码。
+      // 后端 requireFreshPassword 仍是最终权限边界，不能依赖此字段替代服务端校验。
+      requireChangePassword: req.session.passwordIsDefault === true,
       user: {
         username: req.session.user.username,
         role: req.session.user.role,

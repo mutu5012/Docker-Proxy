@@ -4,8 +4,10 @@ import { checkSession } from '../services'
 // 全局共享的登录态（单例）：AdminShell 与 Login 共用。
 // - authed：是否已登录
 // - ready：是否已完成首次会话检查（用于避免刷新 /admin 时闪现登录页）
+// - requireChangePassword：当前会话是否仍在使用系统默认密码
 const authed = ref(false)
 const ready = ref(false)
+const requireChangePassword = ref(false)
 let pendingPromise = null
 
 function isAuthenticated(res) {
@@ -17,8 +19,10 @@ async function startRefresh() {
   try {
     const res = await checkSession()
     authed.value = isAuthenticated(res)
+    requireChangePassword.value = authed.value && res?.requireChangePassword === true
   } catch (_) {
     authed.value = false
+    requireChangePassword.value = false
   } finally {
     ready.value = true
   }
@@ -52,5 +56,5 @@ async function refresh(options = {}) {
 }
 
 export function useAuth() {
-  return { authed, ready, refresh }
+  return { authed, ready, requireChangePassword, refresh }
 }

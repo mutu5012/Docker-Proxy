@@ -6,6 +6,7 @@ const router = express.Router();
 const os = require('os');
 const path = require('path');
 const { version } = require('../package.json');
+const runtimeSettingsService = require('../services/runtimeSettingsService');
 
 // 简单健康检查
 router.get('/', (req, res) => {
@@ -25,7 +26,7 @@ router.get('/system', (req, res) => {
             system: {
                 platform: os.platform(),
                 release: os.release(),
-                hostname: process.env.HOST_NAME || os.hostname(),
+                hostname: runtimeSettingsService.get('hostName') || os.hostname(),
                 uptime: os.uptime(),
                 totalMem: os.totalmem(),
                 freeMem: os.freemem(),

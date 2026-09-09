@@ -28,7 +28,7 @@ import { useAuth } from '../composables/useAuth'
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { authed, ready, refresh } = useAuth()
+const { authed, ready, requireChangePassword, refresh } = useAuth()
 
 // 记录用户真正想访问的后台地址，登录成功后跳回（保持地址栏干净，不出现 ?redirect=）
 const intended = ref('/admin')
@@ -38,6 +38,16 @@ function onLoggedIn() {
   // AdminShell 模板会因 authed 变为 true 自动从 Login 切到 AdminLayout（router-view 渲染默认子路由）
   // 若用户原本访问的是某个具体子路由，再 replace 一次即可
   const target = intended.value
+
+  // 用户可能在未登录时直接打开 /admin/settings。此时该路由已经存在，登录完成后不会
+  // 再触发 beforeEach；因此这里必须补一次同样的默认密码检查，避免敏感页面先渲染再被 API 403。
+  const resolved = router.resolve(target || '/admin')
+  const requiresFreshPassword = resolved.matched.some(record => record.meta.requiresFreshPassword)
+  if (requireChangePassword.value && requiresFreshPassword) {
+    router.replace({ name: 'user', query: { forceChange: '1' } })
+    return
+  }
+
   if (target && target !== route.fullPath) {
     router.replace(target)
   }

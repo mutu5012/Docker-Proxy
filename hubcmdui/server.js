@@ -20,6 +20,7 @@ const { initializeDatabase } = require('./scripts/init-database');
 const database = require('./database/database');
 const httpProxyService = require('./services/httpProxyService');
 const registryCredentialService = require('./services/registryCredentialService');
+const runtimeSettingsService = require('./services/runtimeSettingsService');
 const { createSessionStore } = require('./lib/sessionStore');
 
 // 设置日志级别 (默认INFO, 可通过环境变量设置)
@@ -59,9 +60,8 @@ const sessionMiddleware = session({
     // Secure 仅在 HTTPS 下才应开启；明文访问(如 http://IP:30080)必须关闭，
     // 否则浏览器拒绝保存 cookie，导致会话丢失、验证码永远报错。
     // 优先级：环境变量 SECURE_COOKIE(true/false) > 自动检测（基于 req.secure，由下方中间件实现）。
-    secure: process.env.SECURE_COOKIE === 'true' ? true
-          : process.env.SECURE_COOKIE === 'false' ? false
-          : undefined, // 未显式设置时交给下方 autoSecureCookie 中间件按真实协议判断
+    // 具体值由下方中间件按运行参数动态设置，以支持后台热加载。
+    secure: undefined,
     sameSite: 'lax',
     httpOnly: true,
     path: '/',
@@ -70,13 +70,14 @@ const sessionMiddleware = session({
 });
 app.use(sessionMiddleware);
 
-// 根据真实协议自动设置 session cookie 的 Secure 标志（仅当 SECURE_COOKIE 未显式设置时生效）。
+// 根据后台运行参数动态设置 session cookie 的 Secure 标志。
+// 环境变量 SECURE_COOKIE 若显式设置，仍拥有最高优先级并在后台显示为锁定。
 // 必须在 session 中间件之后，确保 req.session.cookie 已存在；
 // 在响应结束前执行，使后续 req.session.save() / 自动保存使用正确的 Secure 标志。
 app.use((req, res, next) => {
-  if (process.env.SECURE_COOKIE === undefined && req.session && req.session.cookie) {
-    // req.secure 在已设置 trust proxy 的情况下会反映原始协议（HTTPS 经 Cloudflare 时为 true）。
-    req.session.cookie.secure = !!req.secure;
+  if (req.session && req.session.cookie) {
+    const mode = runtimeSettingsService.getSecureCookieMode();
+    req.session.cookie.secure = mode === 'true' ? true : mode === 'false' ? false : !!req.secure;
   }
   next();
 });
@@ -219,6 +220,14 @@ async function startServer() {
       } catch (dbError) {
         logger.error('数据库初始化失败:', dbError);
         logger.warn('将使用文件存储作为备用方案');
+      }
+
+      // 数据库就绪后加载后台可管理的运行参数。旧部署的环境变量只作为首次迁移兜底；
+      // 一旦管理员保存，SQLite 中的值会成为后续启动的主配置来源。
+      try {
+        await runtimeSettingsService.initialize();
+      } catch (settingsError) {
+        logger.warn('运行参数初始化失败，将继续使用启动期默认值:', settingsError.message);
       }
       
       // 确保目录存在
